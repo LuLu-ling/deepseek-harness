@@ -66,6 +66,10 @@ flowchart LR
   cfg --> plugin_dsh_base_session_query_sqlite
   plugin_dsh_base_session_projection["session-projection<br/>@deepseek-ai/dsh-session-projection"]
   cfg --> plugin_dsh_base_session_projection
+  plugin_dsh_base_session_revert["session-revert<br/>@lulu-ling/dsh-session-revert"]
+  cfg --> plugin_dsh_base_session_revert
+  plugin_dsh_base_session_snapshot["session-snapshot<br/>@lulu-ling/dsh-session-file-snapshot"]
+  cfg --> plugin_dsh_base_session_snapshot
   plugin_dsh_base_storage["storage<br/>@deepseek-ai/dsh-storage"]
   cfg --> plugin_dsh_base_storage
   plugin_dsh_base_storage_json["storage-json<br/>@deepseek-ai/dsh-storage-json"]
@@ -229,6 +233,8 @@ flowchart LR
 | `attachment-local` | `@deepseek-ai/dsh-attachment-local` |
 | `session-query-sqlite` | `@deepseek-ai/dsh-session-query-sqlite` |
 | `session-projection` | `@deepseek-ai/dsh-session-projection` |
+| `session-revert` | `@lulu-ling/dsh-session-revert` |
+| `session-snapshot` | `@lulu-ling/dsh-session-file-snapshot` |
 | `storage` | `@deepseek-ai/dsh-storage` |
 | `storage-json` | `@deepseek-ai/dsh-storage-json` |
 | `storage-domain` | `@deepseek-ai/dsh-storage-domain` |

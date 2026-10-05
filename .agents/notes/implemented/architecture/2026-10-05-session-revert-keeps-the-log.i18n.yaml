@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-10-05-session-revert-keeps-the-log.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-05-session-revert-keeps-the-log.md
+/agent-note-session-revert-hides-log-rows-instead-of-deleting-them:
+  en: 54f8eb1d219b737f
+  zh: 4ef0f9bc23a747ee
+/agent-note-session-revert-hides-log-rows-instead-of-deleting-them/problem:
+  en: 79a67cb1cf84f907
+  zh: e0a3ba8ddf0b6e58
+/agent-note-session-revert-hides-log-rows-instead-of-deleting-them/decision:
+  en: 99bd27c5c75bd025
+  zh: 8bf991d5b7746dd0
+/agent-note-session-revert-hides-log-rows-instead-of-deleting-them/consequences:
+  en: 317e2b940779597f
+  zh: 05909679437ef765
+/agent-note-session-revert-hides-log-rows-instead-of-deleting-them/alternatives-considered:
+  en: 8d0ab4cce86465cb
+  zh: ad9920352bb6c82d

@@ -1,0 +1,3 @@
+.counterclockwise {
+  transform: scaleX(-1);
+}

@@ -1,0 +1,49 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/session/session-revert/README.md
+/:
+  en: 50ab372419e5084b
+  zh: 56f15ecb95eb0d2a
+/lulu-ling-dsh-session-revert:
+  en: 5528476bfe132b1d
+  zh: ab8fc9abba8c8460
+/lulu-ling-dsh-session-revert/summary:
+  en: 057594fbf829189c
+  zh: ef77fcc861dbd926
+/lulu-ling-dsh-session-revert/table-of-contents:
+  en: b563e4ec4727d0de
+  zh: 831c40125f2ce143
+/lulu-ling-dsh-session-revert/use-this-package:
+  en: 58790c799b88d968
+  zh: 0a6ce501430577d6
+/lulu-ling-dsh-session-revert/use-this-package/composition:
+  en: 1ff253c3946b4ebe
+  zh: 103f66630a01e5f8
+/lulu-ling-dsh-session-revert/use-this-package/calls:
+  en: cee316f0f9bb815a
+  zh: 3bc6a3b4441c8e3a
+/lulu-ling-dsh-session-revert/use-this-package/failures:
+  en: 5e7b60e5b6919fed
+  zh: 45e93313caa372ef
+/lulu-ling-dsh-session-revert/understand-the-implementation:
+  en: 42b15ac6321706aa
+  zh: 6eb78656420aa552
+/lulu-ling-dsh-session-revert/understand-the-implementation/design-concept:
+  en: 77ef482d14f4e616
+  zh: d9c3f5e510093655
+/lulu-ling-dsh-session-revert/understand-the-implementation/source-map:
+  en: 1b5ce807e0d71a85
+  zh: 9b75815b6eebbb56
+/lulu-ling-dsh-session-revert/further-exploration:
+  en: c840042308d1b928
+  zh: 76b8f573ecc07727
+/lulu-ling-dsh-session-revert/model-experience:
+  en: 2bff62b7dd3032b1
+  zh: 2bec01ddf7c27362
+/lulu-ling-dsh-session-revert/model-experience/kv-cache-effect:
+  en: a192d6c13d297b99
+  zh: 0ee86651d74cfb74
+/lulu-ling-dsh-session-revert/known-limitations-and-deferred-work:
+  en: b73d6ad94fd02ccf
+  zh: 0abafdaf23aa69a8

@@ -80,6 +80,7 @@ export function sessionSnapshot(sessionId: SessionId): SessionSnapshot {
     lastAgentError: null,
     promptAttempted: false,
     awaitingFirstTurn: false,
+    revert: { staged: null, committed: [] },
   }
 }
 

@@ -12,6 +12,7 @@ import type { ChatStoreState } from '../contract/store.ts'
 import type { ChatViewSlotProps } from '../contract/slots.ts'
 import { storedTurnProcessEntry } from '../stores.ts'
 import { ChatNodeSeat } from './ChatNodeSeat.tsx'
+import { seqHiddenByRevert } from './revert-visibility.ts'
 import { chatRenderKey } from './render-entry.ts'
 import { processTitle } from './step-process.ts'
 import { useSearchableHidden } from './searchable-hidden.ts'
@@ -168,6 +169,11 @@ export const ChatGroupSeat = memo(function ChatGroupSeat({ groupKey, useChatGrou
     setOpen(!open)
   }, [closed, initialize, open, setOpen])
   if (members === undefined) return null
+  const reverted = members.length > 0 && members.every((member) => {
+    const node = props.nodeStore.get(member.key)
+    return node !== undefined && seqHiddenByRevert(props.revert, node.anchorSeq)
+  })
+  if (reverted) return null
   const classes = [css.body, !grouped ? css.expandedBody : '',
     grouped && edges.canScrollUp ? css.fadeTop : '', grouped && edges.canScrollDown ? css.fadeBottom : '']
   return (

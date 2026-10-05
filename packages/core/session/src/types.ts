@@ -425,6 +425,26 @@ export interface SessionEventMap {
    * so tolerating concurrent writers needs a signal beyond the log.
    */
   'session/end-seed': { inherited?: true }
+  /**
+   * Hides the user message at `atSeq` and every later event until clear or commit.
+   * `prev` is the staged boundary this one replaced. Log-only and required on read:
+   * a reader that skips it would show messages the model must not see.
+   */
+  'session/revert/staged': {
+    atSeq: SessionSeq
+    prev?: { atSeq: SessionSeq }
+  }
+  /**
+   * Drops the active staged boundary. Committed ranges stay hidden.
+   * Log-only and required on read.
+   */
+  'session/revert/cleared': Record<string, never>
+  /**
+   * Freezes the staged boundary. Events with `seq >= atSeq` and `seq <` this
+   * event stay out of model context, and the stage is cleared.
+   * Log-only and required on read.
+   */
+  'session/revert/committed': { atSeq: SessionSeq }
 }
 
 /** The appendable event-type keys of {@link SessionEventMap}, plugin-merged extensions included. */

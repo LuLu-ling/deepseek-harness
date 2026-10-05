@@ -101,6 +101,7 @@ function sessionSnapshot(openState: SessionSnapshot['openState']): SessionSnapsh
     lastAgentError: null,
     promptAttempted: false,
     awaitingFirstTurn: false,
+    revert: { staged: null, committed: [] },
   }
 }
 

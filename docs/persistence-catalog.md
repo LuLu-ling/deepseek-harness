@@ -53,6 +53,9 @@ The [format references](persistence-changes/historical-formats/README.md) cover 
 | `event:schedule/change` | event | `a0a2e5c42e1c929445ecd1cd70f49be6b66441894ec72c08e8ae332821d4a3cb` | [`{ type: "schedule/change" }`](#persistence-type-sha256-a0a2e5c42e1c929445ecd1cd70f49be6b66441894ec72c08e8ae332821d4a3cb) |
 | `event:session-log-deepseek/delivery-accepted` | event | `d63b8b8ffad9c02fd80c43a17df4f240c1fe8118ecca9de34f9d5871838ab5b9` | [`{ type: "session-log-deepseek/delivery-accepted" }`](#persistence-type-sha256-d63b8b8ffad9c02fd80c43a17df4f240c1fe8118ecca9de34f9d5871838ab5b9) |
 | `event:session/end-seed` | event | `5e6db6e24948d4a853c71cb9fabd252ad051ce93d4672c1266cf837c1c17b84e` | [`{ type: "session/end-seed" }`](#persistence-type-sha256-5e6db6e24948d4a853c71cb9fabd252ad051ce93d4672c1266cf837c1c17b84e) |
+| `event:session/revert/cleared` | event | `a895527b566946881523811a1f5d33a9f1052767d1b3773fd5674727d2d31feb` | [`{ type: "session/revert/cleared" }`](#persistence-type-sha256-a895527b566946881523811a1f5d33a9f1052767d1b3773fd5674727d2d31feb) |
+| `event:session/revert/committed` | event | `756c26fc06a7f81b49b6d6dc472cff301736b132378894782833decb5a5d867a` | [`{ type: "session/revert/committed" }`](#persistence-type-sha256-756c26fc06a7f81b49b6d6dc472cff301736b132378894782833decb5a5d867a) |
+| `event:session/revert/staged` | event | `4c980477e995c940e10e9ac1c9c8f0910123a5aa93d47b29f1e2f1ba727ec122` | [`{ type: "session/revert/staged" }`](#persistence-type-sha256-4c980477e995c940e10e9ac1c9c8f0910123a5aa93d47b29f1e2f1ba727ec122) |
 | `event:session/title` | event | `1b912703e2d64f91c99c675b8f805b01076c8325b905c1218ad81ef0b24909d5` | [`{ type: "session/title" }`](#persistence-type-sha256-1b912703e2d64f91c99c675b8f805b01076c8325b905c1218ad81ef0b24909d5) |
 | `event:session/title-llm-request` | event | `ae84c5e493f94acc63cfb70389073ba616ed7ae7aa4fadde048bdcc64d49bb46` | [`{ type: "session/title-llm-request" }`](#persistence-type-sha256-ae84c5e493f94acc63cfb70389073ba616ed7ae7aa4fadde048bdcc64d49bb46) |
 | `event:step/end` | event | `e0a787e6ec76c7c94fecbc501b489164ab0293db05bc947914077ad01e674f05` | [`{ type: "step/end" }`](#persistence-type-sha256-e0a787e6ec76c7c94fecbc501b489164ab0293db05bc947914077ad01e674f05) |
@@ -155,7 +158,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 }[T]
 ```
 
-Sources: [`packages/core/session/src/types.ts:431`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:439`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:462`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:493`](../packages/core/session/src/types.ts)
+Sources: [`packages/core/session/src/types.ts:451`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:459`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:482`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:513`](../packages/core/session/src/types.ts)
 
 ## Events
 
@@ -812,6 +815,53 @@ Source: [`packages/schedule/schedule/src/types.ts:365`](../packages/schedule/sch
 ```
 
 Source: [`packages/core/session/src/types.ts:427`](../packages/core/session/src/types.ts)
+
+<a id="sessionrevertcleared--log-only"></a>
+
+#### `session/revert/cleared` — log-only
+
+```ts persistence-catalog
+/**
+ * Drops the active staged boundary. Committed ranges stay hidden.
+ * Log-only and required on read.
+ */
+'session/revert/cleared': Record<string, never>
+```
+
+Source: [`packages/core/session/src/types.ts:441`](../packages/core/session/src/types.ts)
+
+<a id="sessionrevertcommitted--log-only"></a>
+
+#### `session/revert/committed` — log-only
+
+```ts persistence-catalog
+/**
+ * Freezes the staged boundary. Events with `seq >= atSeq` and `seq <` this
+ * event stay out of model context, and the stage is cleared.
+ * Log-only and required on read.
+ */
+'session/revert/committed': { atSeq: SessionSeq }
+```
+
+Source: [`packages/core/session/src/types.ts:447`](../packages/core/session/src/types.ts)
+
+<a id="sessionrevertstaged--log-only"></a>
+
+#### `session/revert/staged` — log-only
+
+```ts persistence-catalog
+/**
+ * Hides the user message at `atSeq` and every later event until clear or commit.
+ * `prev` is the staged boundary this one replaced. Log-only and required on read:
+ * a reader that skips it would show messages the model must not see.
+ */
+'session/revert/staged': {
+  atSeq: SessionSeq
+  prev?: { atSeq: SessionSeq }
+}
+```
+
+Source: [`packages/core/session/src/types.ts:433`](../packages/core/session/src/types.ts)
 
 <a id="sessiontitle--log-only"></a>
 
@@ -2386,6 +2436,30 @@ SHA-256: `7f13860ee89a2d35ce09f958e85a04566cd59cb1de1d73a9619a9b631961dc71`
 SHA-256: `1c2686c0682e7bc51d61117b2652bd4a80707e331aa276d6ef915ae32534a330`
 
 `"session/end-seed"`
+
+<a id="persistence-type-sha256-0b53e0c6c7419cadcb0cddd4c57ccc98e121b278d6a5f7347d8c394eff76a1bc"></a>
+
+### `"session/revert/cleared"`
+
+SHA-256: `0b53e0c6c7419cadcb0cddd4c57ccc98e121b278d6a5f7347d8c394eff76a1bc`
+
+`"session/revert/cleared"`
+
+<a id="persistence-type-sha256-b6d3a06529a72810d1d4038b89409a7ac8d2804531073051b951a85af36c1598"></a>
+
+### `"session/revert/committed"`
+
+SHA-256: `b6d3a06529a72810d1d4038b89409a7ac8d2804531073051b951a85af36c1598`
+
+`"session/revert/committed"`
+
+<a id="persistence-type-sha256-2afbb76fcde488d475e2a269fbd89a73f5e831ccdcdd445752062752053ce424"></a>
+
+### `"session/revert/staged"`
+
+SHA-256: `2afbb76fcde488d475e2a269fbd89a73f5e831ccdcdd445752062752053ce424`
+
+`"session/revert/staged"`
 
 <a id="persistence-type-sha256-7a651f3b672c52fb615f22c0ce9cb3cc5b22aad92e6bbeefb0808fd7b9233a50"></a>
 
@@ -4641,7 +4715,7 @@ Sources: [`packages/subagent/subagent/src/continuation-messages.ts:30`](../packa
 
 SHA-256: `335e242de1fcc17b6ca920fc420d71bec2d76e53e37955c00948b65ab77f05c5`
 
-Sources: [`packages/core/session/src/types.ts:462`](../packages/core/session/src/types.ts)
+Sources: [`packages/core/session/src/types.ts:482`](../packages/core/session/src/types.ts)
 
 One of:
 
@@ -5570,6 +5644,31 @@ Sources: [`packages/core/session/src/types.ts:361`](../packages/core/session/src
 | `step` | required | `number` |
 | `turn` | required | `number` |
 
+<a id="persistence-type-sha256-713b183f153d651f0be7b6d582df6862cf0d9bf7755a98787693aa91ff57e963"></a>
+
+### `{ atSeq }`
+
+SHA-256: `713b183f153d651f0be7b6d582df6862cf0d9bf7755a98787693aa91ff57e963`
+
+Sources: [`packages/core/session/src/types.ts:435`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:447`](../packages/core/session/src/types.ts)
+
+| Property | Presence | Type |
+|---|---|---|
+| `atSeq` | required | `number` |
+
+<a id="persistence-type-sha256-9f89ad71f60c58cecfd5ceef6a6fafc28a57366c838df53a5f86efa959a595b4"></a>
+
+### `{ atSeq, prev? }`
+
+SHA-256: `9f89ad71f60c58cecfd5ceef6a6fafc28a57366c838df53a5f86efa959a595b4`
+
+Sources: [`packages/core/session/src/types.ts:433`](../packages/core/session/src/types.ts)
+
+| Property | Presence | Type |
+|---|---|---|
+| `atSeq` | required | `number` |
+| `prev` | optional | [`{ atSeq }`](#persistence-type-sha256-713b183f153d651f0be7b6d582df6862cf0d9bf7755a98787693aa91ff57e963) |
+
 <a id="persistence-type-sha256-1528539c63db8b23506f0209a99ce77d8ad138adfbfcee3d4769b7382d93756c"></a>
 
 ### `{ callId, files, turn }`
@@ -5913,7 +6012,7 @@ Sources: [`packages/compaction/compaction/src/types.ts:38`](../packages/compacti
 
 SHA-256: `bcf0caf62d964b2fcf5404bd5c909cfa9a21c3f3c96e6b7e36d9e33565223825`
 
-Sources: [`packages/core/session/src/types.ts:464`](../packages/core/session/src/types.ts)
+Sources: [`packages/core/session/src/types.ts:484`](../packages/core/session/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -8244,6 +8343,54 @@ SHA-256: `5e6db6e24948d4a853c71cb9fabd252ad051ce93d4672c1266cf837c1c17b84e`
 | `time` | required | `number` |
 | `type` | required | `"session/end-seed"` |
 
+<a id="persistence-type-sha256-a895527b566946881523811a1f5d33a9f1052767d1b3773fd5674727d2d31feb"></a>
+
+<a id="persistence-type-eventsessionrevertcleared"></a>
+
+### `{ type: "session/revert/cleared" }`
+
+SHA-256: `a895527b566946881523811a1f5d33a9f1052767d1b3773fd5674727d2d31feb`
+
+| Property | Presence | Type |
+|---|---|---|
+| `data` | required | [`{}`](#persistence-type-sha256-f0d4d35a2f77027ccfbc9b6b774b92f27eba1aadc2cf523147e3629bbfb646b5) |
+| `ignorable` | optional | `true` |
+| `seq` | required | `number` |
+| `time` | required | `number` |
+| `type` | required | `"session/revert/cleared"` |
+
+<a id="persistence-type-sha256-756c26fc06a7f81b49b6d6dc472cff301736b132378894782833decb5a5d867a"></a>
+
+<a id="persistence-type-eventsessionrevertcommitted"></a>
+
+### `{ type: "session/revert/committed" }`
+
+SHA-256: `756c26fc06a7f81b49b6d6dc472cff301736b132378894782833decb5a5d867a`
+
+| Property | Presence | Type |
+|---|---|---|
+| `data` | required | [`{ atSeq }`](#persistence-type-sha256-713b183f153d651f0be7b6d582df6862cf0d9bf7755a98787693aa91ff57e963) |
+| `ignorable` | optional | `true` |
+| `seq` | required | `number` |
+| `time` | required | `number` |
+| `type` | required | `"session/revert/committed"` |
+
+<a id="persistence-type-sha256-4c980477e995c940e10e9ac1c9c8f0910123a5aa93d47b29f1e2f1ba727ec122"></a>
+
+<a id="persistence-type-eventsessionrevertstaged"></a>
+
+### `{ type: "session/revert/staged" }`
+
+SHA-256: `4c980477e995c940e10e9ac1c9c8f0910123a5aa93d47b29f1e2f1ba727ec122`
+
+| Property | Presence | Type |
+|---|---|---|
+| `data` | required | [`{ atSeq, prev? }`](#persistence-type-sha256-9f89ad71f60c58cecfd5ceef6a6fafc28a57366c838df53a5f86efa959a595b4) |
+| `ignorable` | optional | `true` |
+| `seq` | required | `number` |
+| `time` | required | `number` |
+| `type` | required | `"session/revert/staged"` |
+
 <a id="persistence-type-sha256-1b912703e2d64f91c99c675b8f805b01076c8325b905c1218ad81ef0b24909d5"></a>
 
 <a id="persistence-type-eventsessiontitle"></a>
@@ -8778,3 +8925,13 @@ Sources: [`packages/util/values/src/index.ts:4`](../packages/util/values/src/ind
 | Property | Presence | Type |
 |---|---|---|
 | [`string`] | index signature | [`JsonValue`](#persistence-type-sha256-c592ce75aab73fcab19c1d7845684c72cf402b78d2e1f2833a58ecf9f3598ed6) |
+
+<a id="persistence-type-sha256-f0d4d35a2f77027ccfbc9b6b774b92f27eba1aadc2cf523147e3629bbfb646b5"></a>
+
+### `{}`
+
+SHA-256: `f0d4d35a2f77027ccfbc9b6b774b92f27eba1aadc2cf523147e3629bbfb646b5`
+
+| Property | Presence | Type |
+|---|---|---|
+| [`string`] | index signature | `never` |

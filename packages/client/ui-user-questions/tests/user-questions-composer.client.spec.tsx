@@ -47,6 +47,7 @@ const sessionState: SessionState = {
   lastAgentError: null,
   promptAttempted: false,
   awaitingFirstTurn: false,
+  revert: { staged: null, committed: [] },
 }
 const sessionList = {
   ids: [SID],

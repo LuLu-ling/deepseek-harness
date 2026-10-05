@@ -239,6 +239,21 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Owns append-only Session instances and emits the durable session event feed.',
   },
   {
+    key: 'sessionRevert',
+    pkg: 'session-revert',
+    title: 'Session revert',
+    mode: 'core',
+    consumers: ['session-file-snapshot', 'api-session-controller'],
+    note: 'Stages, clears, and commits a revert boundary in the session log without deleting events.',
+  },
+  {
+    key: 'sessionSnapshots',
+    pkg: 'session-file-snapshot',
+    title: 'Worktree snapshots',
+    mode: 'core',
+    note: 'Captures a git tree before a turn writes files and restores the paths that differ when a revert moves.',
+  },
+  {
     key: 'speechController',
     pkg: 'experimental-api-speech-to-text',
     title: 'Experimental transcription Remote',

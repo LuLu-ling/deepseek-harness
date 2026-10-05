@@ -8,6 +8,7 @@ import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
 import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
 import type { UserMessage } from '@deepseek-ai/dsh-llm/types'
 import { SessionLogOffset, SessionSeq, type SessionId } from '@deepseek-ai/dsh-session/types'
+import type { SessionRevertClearResult, SessionRevertStageResult } from '@lulu-ling/dsh-session-revert/client'
 import { SessionEventStream } from '../transport.ts'
 import type { SessionJournalChange } from '../transport.ts'
 import type {
@@ -109,7 +110,12 @@ export class Session implements SessionFace {
   /** The running jump loop's completion, shared by retargeting callers. */
   private jumpPromise: Promise<void> | null = null
   private pendingHistory: PendingHistory | null = null
+  /** Local revert view painted before the host frame arrives. */
+  private pendingRevert: SessionSnapshot['revert'] | undefined
+  /** Stage and clear calls whose host frame has not settled. */
+  private revertInflight = 0
   private readonly stopObservingInbox: () => void
+  private readonly stopObservingRevert: () => void
   private readonly assistantStream = new ClientAssistantStream()
   private running = false
   private address: SubagentAddress | undefined
@@ -195,6 +201,15 @@ export class Session implements SessionFace {
     this.snapshotCache = this.buildSnapshot()
     this.stopObservingInbox = this.projections.faceOf('inbox').subscribe(() => {
       this.observeSubmissionInbox()
+    })
+    // The chat snapshot copies `revert` by value. A control-stream frame updates
+    // the projection store without any other Session edge, so subscribe here or
+    // the open view keeps the baseline until the next resync. A frame replaces
+    // the optimistic view only after every in-flight stage or clear has settled.
+    this.stopObservingRevert = this.projections.faceOf('revert').subscribe(() => {
+      if (this.revertInflight > 0) return
+      this.pendingRevert = undefined
+      this.notifier.markDirty()
     })
   }
 
@@ -388,6 +403,78 @@ export class Session implements SessionFace {
     const result = await this.remote.commands.execute(this.sessionId, line, [])
     if (!result.ok) return result
     return { ok: true, value: { matched: result.value !== undefined } }
+  }
+
+  /**
+   * Hide the user message at `atSeq` and everything after it.
+   * The snapshot shows that boundary before the host replies. A click while
+   * an earlier revert is still in flight is ignored. A refusal restores the
+   * host view.
+   * @param atSeq - seq of an existing user message.
+   * @returns the staged boundary, or the business error.
+   */
+  revertStage(atSeq: SessionSeq): Promise<RemoteResult<SessionRevertStageResult>> {
+    if (this.revertInflight > 0) return Promise.resolve({ ok: true, value: { atSeq, changed: false } })
+    const current = this.getSnapshot().revert
+    this.revertInflight += 1
+    this.pendingRevert = { staged: { atSeq }, committed: current.committed }
+    this.notifier.notifyNow()
+    return this.finishRevert(this.remote.sessionRevert.stage(this.sessionId, atSeq))
+  }
+
+  /**
+   * Drop the staged boundary. Frozen ranges stay hidden.
+   * The snapshot clears the stage before the host replies. A click while an
+   * earlier revert is still in flight is ignored. A refusal restores the host view.
+   * @returns whether a stage was cleared, or the business error.
+   */
+  revertClear(): Promise<RemoteResult<SessionRevertClearResult>> {
+    if (this.revertInflight > 0) return Promise.resolve({ ok: true, value: { cleared: false } })
+    const current = this.getSnapshot().revert
+    this.revertInflight += 1
+    this.pendingRevert = { staged: null, committed: current.committed }
+    this.notifier.notifyNow()
+    return this.finishRevert(this.remote.sessionRevert.clear(this.sessionId))
+  }
+
+  /** Settle one optimistic revert. The host view returns when none remain. */
+  private finishRevert<T>(pending: Promise<RemoteResult<T>>): Promise<RemoteResult<T>> {
+    return pending.then(
+      (result) => {
+        this.settleRevert(result.ok)
+        return result
+      },
+      (error: unknown) => {
+        this.settleRevert(false)
+        throw error
+      },
+    )
+  }
+
+  /** Drop the optimistic view when the last in-flight revert has failed or the host already matches. */
+  private settleRevert(ok: boolean): void {
+    this.revertInflight = Math.max(0, this.revertInflight - 1)
+    if (this.revertInflight > 0) return
+    if (!ok || this.pendingMatchesHost()) this.dropPendingRevert()
+  }
+
+  /** Whether the painted revert is already what the host projection says. */
+  private pendingMatchesHost(): boolean {
+    if (this.pendingRevert === undefined) return true
+    const host = this.projections.values().revert ?? foldClientRevert(this.eventSource.getSnapshot().entries)
+    if (this.pendingRevert.staged?.atSeq !== host.staged?.atSeq) return false
+    if (this.pendingRevert.committed.length !== host.committed.length) return false
+    return this.pendingRevert.committed.every((range, index) => {
+      const other = host.committed[index]
+      return other !== undefined && range.atSeq === other.atSeq && range.untilSeq === other.untilSeq
+    })
+  }
+
+  /** Drop the optimistic revert view and publish the host snapshot now. */
+  private dropPendingRevert(): void {
+    if (this.pendingRevert === undefined) return
+    this.pendingRevert = undefined
+    this.notifier.notifyNow()
   }
 
   /** First open: pull the tail page (idempotent — in-flight/already-open returns the existing promise). */
@@ -598,6 +685,7 @@ export class Session implements SessionFace {
    */
   async dispose(): Promise<void> {
     this.stopObservingInbox()
+    this.stopObservingRevert()
     // Unsettled echoes retire as failed so their owners can restore or
     // release browser resources; admitted echoes keep their observed outcome.
     for (const [requestId, settlement] of [...this.submissionSettlements]) {
@@ -727,9 +815,6 @@ export class Session implements SessionFace {
       const changed = this.appendLive(result.entry)
       if (result.retireAttemptId !== undefined) this.eventSource.settleAssistant(result.retireAttemptId)
       if (changed || result.retireAttemptId !== undefined) this.notifier.markDirty()
-    } else if (result?.type === 'transient') {
-      this.eventSource.append(result.entry)
-      this.notifier.markDirty()
     }
   }
 
@@ -745,6 +830,7 @@ export class Session implements SessionFace {
     this.baseSeq = entries[0] === undefined ? this.baseSeq : SessionLogOffset(entries[0].event.seq)
     this.hasMore = hasMore
     this.eventSource.prepend(entries, hasMore)
+    if (entries.some(entry => isRevertEvent(entry.event))) this.notifier.markDirty()
   }
 
   /** Append one stream-validated live event. */
@@ -757,7 +843,7 @@ export class Session implements SessionFace {
     // registered by the feed subscribers above, so the echo-retirement frame
     // scheduled here always runs after the durable node became renderable.
     this.observeSubmissionEvent(event)
-    return awaitingFirstTurn !== this.firstPromptPendingTurn
+    return awaitingFirstTurn !== this.firstPromptPendingTurn || isRevertEvent(event)
   }
 
   /** Observe durable acceptance even when insertion and claim share one projection notification. */
@@ -909,6 +995,7 @@ export class Session implements SessionFace {
       lastAgentError: this.lastAgentError,
       promptAttempted: this.promptAttempted,
       awaitingFirstTurn: this.firstPromptPendingTurn,
+      revert: this.pendingRevert ?? this.projections.values().revert ?? foldClientRevert(this.eventSource.getSnapshot().entries),
     }
   }
 
@@ -917,6 +1004,33 @@ export class Session implements SessionFace {
       ? { kind: 'session', sessionId: this.sessionId }
       : { kind: 'subagent', ...this.address }
   }
+}
+
+/** Whether one client event is a revert marker. */
+function isRevertEvent(event: SessionEventLike): boolean {
+  return event.type === 'session/revert/staged'
+    || event.type === 'session/revert/cleared'
+    || event.type === 'session/revert/committed'
+}
+
+const EMPTY_REVERT: SessionSnapshot['revert'] = { staged: null, committed: [] }
+
+/** Fold revert markers visible in the loaded event window. */
+function foldClientRevert(entries: readonly SessionEventLikeEntry[]): SessionSnapshot['revert'] {
+  let staged: SessionSnapshot['revert']['staged'] = null
+  const committed: { atSeq: number; untilSeq: number }[] = []
+  for (const entry of entries) {
+    if (entry.type !== 'event') continue
+    const event = entry.event
+    if (event.type === 'session/revert/staged') staged = { atSeq: event.data.atSeq }
+    else if (event.type === 'session/revert/cleared') staged = null
+    else if (event.type === 'session/revert/committed') {
+      committed.push({ atSeq: event.data.atSeq, untilSeq: event.seq })
+      staged = null
+    }
+  }
+  if (staged === null && committed.length === 0) return EMPTY_REVERT
+  return { staged, committed }
 }
 
 /** Run one callback on the next animation frame, or a macrotask where no frame clock exists. */

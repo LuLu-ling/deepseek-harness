@@ -304,6 +304,8 @@
     { "path": "./packages/session/session-log-deepseek" },
     { "path": "./packages/session/session-persistence-jsonl" },
     { "path": "./packages/session/session-projection" },
+    { "path": "./packages/session/session-revert" },
+    { "path": "./packages/session/session-file-snapshot" },
     { "path": "./packages/session/session-projection-cache" },
     { "path": "./packages/session/session-stats" },
     { "path": "./packages/session-query/session-query" },

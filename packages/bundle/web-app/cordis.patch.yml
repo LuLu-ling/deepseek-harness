@@ -435,6 +435,9 @@
     - id: ui-settings-web-search
       name: '@deepseek-ai/dsh-client-ui-settings-web-search'
 
+    - id: ui-settings-session-snapshot
+      name: '@lulu-ling/dsh-client-ui-settings-session-snapshot'
+
     # Plan control: the composer plan seat over the plan projection + /plan channel.
     - id: ui-plan
       name: '@deepseek-ai/dsh-client-ui-plan'

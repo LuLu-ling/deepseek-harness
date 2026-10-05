@@ -191,6 +191,14 @@ export const zh = {
   'json.truncated': '… 已截断，共 {total} 字符',
   'clock.md': '{m}月{d}日',
   'clock.ymd': '{y}年{m}月{d}日',
+  'revert.banner': '已撤回 {count} 条消息',
+  'revert.restore': '全部恢复',
+  'revert.dock.restore': '恢复这条消息',
+  'command.undo': '撤回',
+  'message.undo': '撤回消息',
+  'command.undo.description': '撤回最后一条消息',
+  'command.redo': '重做',
+  'command.redo.description': '恢复已撤回的消息',
 } satisfies Record<string, string>
 
 /** Chat dictionary key union. */
@@ -384,4 +392,12 @@ export const en = {
   'json.truncated': '… truncated, {total} characters total',
   'clock.md': '{m}/{d}',
   'clock.ymd': '{y}-{m}-{d}',
+  'revert.banner': '{count} messages reverted',
+  'revert.restore': 'Restore all',
+  'revert.dock.restore': 'Restore this message',
+  'command.undo': 'Undo',
+  'message.undo': 'Undo message',
+  'command.undo.description': 'Undo the last message',
+  'command.redo': 'Redo',
+  'command.redo.description': 'Restore reverted messages',
 } satisfies Record<ChatKey, string>
