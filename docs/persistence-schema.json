@@ -22816,7 +22816,7 @@
         "packages/core/session/src/types.ts#SurfaceOp"
       ],
       "sources": [
-        "packages/core/session/src/types.ts:482"
+        "packages/core/session/src/types.ts:484"
       ]
     },
     {
@@ -23738,8 +23738,8 @@
       "digest": "713b183f153d651f0be7b6d582df6862cf0d9bf7755a98787693aa91ff57e963",
       "names": [],
       "sources": [
-        "packages/core/session/src/types.ts:435",
-        "packages/core/session/src/types.ts:447"
+        "packages/core/session/src/types.ts:436",
+        "packages/core/session/src/types.ts:449"
       ]
     },
     {
@@ -24366,7 +24366,7 @@
       "digest": "9f89ad71f60c58cecfd5ceef6a6fafc28a57366c838df53a5f86efa959a595b4",
       "names": [],
       "sources": [
-        "packages/core/session/src/types.ts:433"
+        "packages/core/session/src/types.ts:434"
       ]
     },
     {
@@ -24916,7 +24916,7 @@
       "digest": "bcf0caf62d964b2fcf5404bd5c909cfa9a21c3f3c96e6b7e36d9e33565223825",
       "names": [],
       "sources": [
-        "packages/core/session/src/types.ts:484"
+        "packages/core/session/src/types.ts:486"
       ]
     },
     {

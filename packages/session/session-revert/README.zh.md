@@ -35,6 +35,7 @@ kind: "package-reference"
 ### 调用
 
 `stage(agent, atSeq)` 在 `atSeq` 是一条现存 `user/message`、且不落在任何已冻结区间内时追加 `session/revert/staged`。重复当前边界不会产生变化。`clear(agent)` 在存在暂存时追加 `session/revert/cleared`。两者都会拒绝正在运行的 agent，以及收件箱里仍有待处理输入的情况。`commit(agent)` 为当前暂存追加 `session/revert/committed`。人类 prompt 也会提交，时机是 `agent/pre-step`，发生在该 prompt 写入日志之前。
+这三条事件追加时都带 `ignorable: true`。
 
 ### 失败
 

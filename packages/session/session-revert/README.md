@@ -35,6 +35,7 @@ Mount the plugin beside the session store, the agent registry, and the projectio
 ### Calls
 
 `stage(agent, atSeq)` appends `session/revert/staged` when `atSeq` is an existing `user/message` outside every frozen range. A repeat of the current boundary changes nothing. `clear(agent)` appends `session/revert/cleared` when a stage is active. Both refuse a running agent and an inbox that still holds pending input. `commit(agent)` appends `session/revert/committed` for the active stage. A human prompt also commits, from `agent/pre-step`, before that prompt is logged.
+Each of those three events is appended with `ignorable: true`.
 
 ### Failures
 

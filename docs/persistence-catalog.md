@@ -158,7 +158,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 }[T]
 ```
 
-Sources: [`packages/core/session/src/types.ts:451`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:459`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:482`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:513`](../packages/core/session/src/types.ts)
+Sources: [`packages/core/session/src/types.ts:453`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:461`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:484`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:515`](../packages/core/session/src/types.ts)
 
 ## Events
 
@@ -823,12 +823,13 @@ Source: [`packages/core/session/src/types.ts:427`](../packages/core/session/src/
 ```ts persistence-catalog
 /**
  * Drops the active staged boundary. Committed ranges stay hidden.
- * Log-only and required on read.
+ * Appended with `ignorable: true`. An older harness opens the log and leaves
+ * the stage in place.
  */
 'session/revert/cleared': Record<string, never>
 ```
 
-Source: [`packages/core/session/src/types.ts:441`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:443`](../packages/core/session/src/types.ts)
 
 <a id="sessionrevertcommitted--log-only"></a>
 
@@ -837,13 +838,13 @@ Source: [`packages/core/session/src/types.ts:441`](../packages/core/session/src/
 ```ts persistence-catalog
 /**
  * Freezes the staged boundary. Events with `seq >= atSeq` and `seq <` this
- * event stay out of model context, and the stage is cleared.
- * Log-only and required on read.
+ * event stay out of model context, and the stage is cleared. Appended with
+ * `ignorable: true`. An older harness opens the log and keeps those messages visible.
  */
 'session/revert/committed': { atSeq: SessionSeq }
 ```
 
-Source: [`packages/core/session/src/types.ts:447`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:449`](../packages/core/session/src/types.ts)
 
 <a id="sessionrevertstaged--log-only"></a>
 
@@ -852,8 +853,9 @@ Source: [`packages/core/session/src/types.ts:447`](../packages/core/session/src/
 ```ts persistence-catalog
 /**
  * Hides the user message at `atSeq` and every later event until clear or commit.
- * `prev` is the staged boundary this one replaced. Log-only and required on read:
- * a reader that skips it would show messages the model must not see.
+ * `prev` is the staged boundary this one replaced. Appended with `ignorable: true`,
+ * so a harness that does not know this type opens the log and shows every message.
+ * A harness that knows it still hides the range.
  */
 'session/revert/staged': {
   atSeq: SessionSeq
@@ -861,7 +863,7 @@ Source: [`packages/core/session/src/types.ts:447`](../packages/core/session/src/
 }
 ```
 
-Source: [`packages/core/session/src/types.ts:433`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:434`](../packages/core/session/src/types.ts)
 
 <a id="sessiontitle--log-only"></a>
 
@@ -4715,7 +4717,7 @@ Sources: [`packages/subagent/subagent/src/continuation-messages.ts:30`](../packa
 
 SHA-256: `335e242de1fcc17b6ca920fc420d71bec2d76e53e37955c00948b65ab77f05c5`
 
-Sources: [`packages/core/session/src/types.ts:482`](../packages/core/session/src/types.ts)
+Sources: [`packages/core/session/src/types.ts:484`](../packages/core/session/src/types.ts)
 
 One of:
 
@@ -5650,7 +5652,7 @@ Sources: [`packages/core/session/src/types.ts:361`](../packages/core/session/src
 
 SHA-256: `713b183f153d651f0be7b6d582df6862cf0d9bf7755a98787693aa91ff57e963`
 
-Sources: [`packages/core/session/src/types.ts:435`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:447`](../packages/core/session/src/types.ts)
+Sources: [`packages/core/session/src/types.ts:436`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:449`](../packages/core/session/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -5662,7 +5664,7 @@ Sources: [`packages/core/session/src/types.ts:435`](../packages/core/session/src
 
 SHA-256: `9f89ad71f60c58cecfd5ceef6a6fafc28a57366c838df53a5f86efa959a595b4`
 
-Sources: [`packages/core/session/src/types.ts:433`](../packages/core/session/src/types.ts)
+Sources: [`packages/core/session/src/types.ts:434`](../packages/core/session/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -6012,7 +6014,7 @@ Sources: [`packages/compaction/compaction/src/types.ts:38`](../packages/compacti
 
 SHA-256: `bcf0caf62d964b2fcf5404bd5c909cfa9a21c3f3c96e6b7e36d9e33565223825`
 
-Sources: [`packages/core/session/src/types.ts:484`](../packages/core/session/src/types.ts)
+Sources: [`packages/core/session/src/types.ts:486`](../packages/core/session/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|

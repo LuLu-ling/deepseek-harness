@@ -21,7 +21,7 @@ import type { SessionSurface, SessionMessageProjection } from './surface.ts'
 import { foldRequestHeader } from './request-header.ts'
 import { ToolHistoryProjection } from './tool-history.ts'
 import type { ToolHistory } from '@deepseek-ai/dsh-llm'
-import { applyRevertEvent, emptyRevertFold, revertExcludes } from './revert.ts'
+import { applyRevertEvent, assertRevertEventData, emptyRevertFold, revertExcludes } from './revert.ts'
 import type { RevertFoldState } from './revert.ts'
 
 import { buildForkSeed } from './fork.ts'
@@ -232,6 +232,7 @@ function assertSessionEventEnvelope(value: unknown, index: number): asserts valu
     throw new Error(`seed event at index ${index} has an invalid event envelope`)
   }
   validateSessionEventData(event as SessionEvent, `seed ${type} at index ${index}`)
+  assertRevertEventData(event as SessionEvent, `seed ${type} at index ${index}`)
   switch (type) {
     case 'request/header':
     case 'developer/message':
@@ -743,14 +744,17 @@ export class Session {
     if (entry?.appending) {
       throw new Error('session append cannot reenter while another append is being published')
     }
+    const ignorable = type === 'session/revert/staged' || type === 'session/revert/cleared' || type === 'session/revert/committed'
     const event = deepFreeze({
       type,
       seq: SessionSeq(this.log.length),
       time: Date.now(),
       data: dataSnapshot,
+      ...(ignorable ? { ignorable: true as const } : {}),
       ...(surfaceMetadataSnapshot as { surfaceOp?: unknown; sourceEventSeqs?: unknown }),
     } as unknown as SessionEvent<T>)
     validateSessionEventData(event, `session event "${type}" at seq ${event.seq}`)
+    assertRevertEventData(event, `session event "${type}" at seq ${event.seq}`)
     this.surfaceManager.validateNext(event as SessionEvent)
 
     if (entry !== undefined) entry.appending = true

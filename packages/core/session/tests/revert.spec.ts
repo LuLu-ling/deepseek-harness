@@ -26,10 +26,12 @@ describe('session revert', () => {
     const second = user(session, 'two')
     user(session, 'three')
 
-    session.append('session/revert/staged', { atSeq: second })
+    const staged = session.append('session/revert/staged', { atSeq: second })
+    expect(staged.ignorable).toBe(true)
     expect(userTexts(session)).toEqual(['one'])
 
-    session.append('session/revert/cleared', {})
+    const cleared = session.append('session/revert/cleared', {})
+    expect(cleared.ignorable).toBe(true)
     expect(userTexts(session)).toEqual(['one', 'two', 'three'])
   })
 
@@ -37,8 +39,10 @@ describe('session revert', () => {
     const session = Session.create(SessionId('revert-commit'))
     user(session, 'one')
     const second = user(session, 'two')
-    session.append('session/revert/staged', { atSeq: second })
-    session.append('session/revert/committed', { atSeq: second })
+    const staged = session.append('session/revert/staged', { atSeq: second })
+    const committed = session.append('session/revert/committed', { atSeq: second })
+    expect(staged.ignorable).toBe(true)
+    expect(committed.ignorable).toBe(true)
     user(session, 'three')
 
     expect(userTexts(session)).toEqual(['one', 'three'])

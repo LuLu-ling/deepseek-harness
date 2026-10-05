@@ -3,14 +3,14 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/upgrade-guide/v0.2.1-alpha.1/session-revert/guide.md
 /:
-  en: d0773b1689ebbef4
-  zh: 106b20aa8fea89f8
+  en: 07c6b81f2374d4f9
+  zh: bc1877609891d2eb
 /session-revert-events:
   en: 0478c45de88d1950
   zh: 8870301712dba882
 /session-revert-events/change:
-  en: 1acfd51fe44e6c8a
-  zh: 5142b9a866ceb764
+  en: 0052e36ef3f803a7
+  zh: 3249a9d93fc099c7
 /session-revert-events/migration:
-  en: ff797985a7595312
-  zh: 19b3d44d144d73a9
+  en: 7b7e284b26b1a698
+  zh: 659afad7b755987e

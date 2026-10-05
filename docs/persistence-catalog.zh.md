@@ -160,7 +160,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 }[T]
 ```
 
-来源：[`packages/core/session/src/types.ts:451`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:459`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:482`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:513`](../packages/core/session/src/types.ts)
+来源：[`packages/core/session/src/types.ts:453`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:461`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:484`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:515`](../packages/core/session/src/types.ts)
 
 ## 事件
 
@@ -825,12 +825,13 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 ```ts persistence-catalog
 /**
  * Drops the active staged boundary. Committed ranges stay hidden.
- * Log-only and required on read.
+ * Appended with `ignorable: true`. An older harness opens the log and leaves
+ * the stage in place.
  */
 'session/revert/cleared': Record<string, never>
 ```
 
-来源：[`packages/core/session/src/types.ts:441`](../packages/core/session/src/types.ts)
+来源：[`packages/core/session/src/types.ts:443`](../packages/core/session/src/types.ts)
 
 <a id="sessionrevertcommitted--log-only"></a>
 
@@ -839,13 +840,13 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 ```ts persistence-catalog
 /**
  * Freezes the staged boundary. Events with `seq >= atSeq` and `seq <` this
- * event stay out of model context, and the stage is cleared.
- * Log-only and required on read.
+ * event stay out of model context, and the stage is cleared. Appended with
+ * `ignorable: true`. An older harness opens the log and keeps those messages visible.
  */
 'session/revert/committed': { atSeq: SessionSeq }
 ```
 
-来源：[`packages/core/session/src/types.ts:447`](../packages/core/session/src/types.ts)
+来源：[`packages/core/session/src/types.ts:449`](../packages/core/session/src/types.ts)
 
 <a id="sessionrevertstaged--log-only"></a>
 
@@ -854,8 +855,9 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 ```ts persistence-catalog
 /**
  * Hides the user message at `atSeq` and every later event until clear or commit.
- * `prev` is the staged boundary this one replaced. Log-only and required on read:
- * a reader that skips it would show messages the model must not see.
+ * `prev` is the staged boundary this one replaced. Appended with `ignorable: true`,
+ * so a harness that does not know this type opens the log and shows every message.
+ * A harness that knows it still hides the range.
  */
 'session/revert/staged': {
   atSeq: SessionSeq
@@ -863,7 +865,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 }
 ```
 
-来源：[`packages/core/session/src/types.ts:433`](../packages/core/session/src/types.ts)
+来源：[`packages/core/session/src/types.ts:434`](../packages/core/session/src/types.ts)
 
 <a id="sessiontitle--log-only"></a>
 
@@ -4717,7 +4719,7 @@ SHA-256: `4e97c3d85c0fc817ee58873c38c25a2474abaaa0af4839311b50b68db3b8cf1a`
 
 SHA-256: `335e242de1fcc17b6ca920fc420d71bec2d76e53e37955c00948b65ab77f05c5`
 
-来源：[`packages/core/session/src/types.ts:482`](../packages/core/session/src/types.ts)
+来源：[`packages/core/session/src/types.ts:484`](../packages/core/session/src/types.ts)
 
 以下类型之一：
 
@@ -5652,7 +5654,7 @@ SHA-256: `e4c18e294232c3ba6c9f1999f168263cc55956147cfe4121720899be8e52edd1`
 
 SHA-256: `713b183f153d651f0be7b6d582df6862cf0d9bf7755a98787693aa91ff57e963`
 
-来源：[`packages/core/session/src/types.ts:435`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:447`](../packages/core/session/src/types.ts)
+来源：[`packages/core/session/src/types.ts:436`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:449`](../packages/core/session/src/types.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
@@ -5664,7 +5666,7 @@ SHA-256: `713b183f153d651f0be7b6d582df6862cf0d9bf7755a98787693aa91ff57e963`
 
 SHA-256: `9f89ad71f60c58cecfd5ceef6a6fafc28a57366c838df53a5f86efa959a595b4`
 
-来源：[`packages/core/session/src/types.ts:433`](../packages/core/session/src/types.ts)
+来源：[`packages/core/session/src/types.ts:434`](../packages/core/session/src/types.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
@@ -6014,7 +6016,7 @@ SHA-256: `9e41386b3a0c9572b0d63078492ebb3997da7d3a830d44e0259418bd02f4bcb2`
 
 SHA-256: `bcf0caf62d964b2fcf5404bd5c909cfa9a21c3f3c96e6b7e36d9e33565223825`
 
-来源：[`packages/core/session/src/types.ts:484`](../packages/core/session/src/types.ts)
+来源：[`packages/core/session/src/types.ts:486`](../packages/core/session/src/types.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|

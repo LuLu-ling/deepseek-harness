@@ -427,8 +427,9 @@ export interface SessionEventMap {
   'session/end-seed': { inherited?: true }
   /**
    * Hides the user message at `atSeq` and every later event until clear or commit.
-   * `prev` is the staged boundary this one replaced. Log-only and required on read:
-   * a reader that skips it would show messages the model must not see.
+   * `prev` is the staged boundary this one replaced. Appended with `ignorable: true`,
+   * so a harness that does not know this type opens the log and shows every message.
+   * A harness that knows it still hides the range.
    */
   'session/revert/staged': {
     atSeq: SessionSeq
@@ -436,13 +437,14 @@ export interface SessionEventMap {
   }
   /**
    * Drops the active staged boundary. Committed ranges stay hidden.
-   * Log-only and required on read.
+   * Appended with `ignorable: true`. An older harness opens the log and leaves
+   * the stage in place.
    */
   'session/revert/cleared': Record<string, never>
   /**
    * Freezes the staged boundary. Events with `seq >= atSeq` and `seq <` this
-   * event stay out of model context, and the stage is cleared.
-   * Log-only and required on read.
+   * event stay out of model context, and the stage is cleared. Appended with
+   * `ignorable: true`. An older harness opens the log and keeps those messages visible.
    */
   'session/revert/committed': { atSeq: SessionSeq }
 }
