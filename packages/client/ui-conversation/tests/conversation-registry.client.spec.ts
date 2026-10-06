@@ -37,6 +37,7 @@ function sessionSnapshot(): SessionSnapshot {
     lastAgentError: null,
     promptAttempted: false,
     awaitingFirstTurn: false,
+    revert: { staged: null, committed: [] },
   }
 }
 
@@ -56,6 +57,8 @@ function fakeSession(): SessionFace {
     loadOlder: () => Promise.reject(new Error('unused fake Session operation')),
     loadThrough: () => Promise.reject(new Error('unused fake Session operation')),
     command: () => Promise.reject(new Error('unused fake Session operation')),
+    revertStage: () => Promise.reject(new Error('unused fake Session operation')),
+    revertClear: () => Promise.reject(new Error('unused fake Session operation')),
   }
 }
 

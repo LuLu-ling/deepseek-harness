@@ -5,13 +5,17 @@ import type { ConversationLocationDataStore, ConversationTurnDataMap } from '@de
 import type { ChatNodeHookContext, ChatNodeOwnerProps, ChatViewSlotProps, UsePresentation } from '../contract/slots.ts'
 import type { ChatNode } from '../contract/chat-nodes.ts'
 import type { ChatNodeStore } from '../contract/snapshot.ts'
+import type { SessionRevertView } from '@lulu-ling/dsh-session-revert/client'
 import { TURN_PROCESS_INDEPENDENT_KINDS, turnProcessAlwaysOpen } from '../contract/turn-process.ts'
 import { storedTurnProcessEntry } from '../stores.ts'
 import { useSearchableHidden } from './searchable-hidden.ts'
+import { seqHiddenByRevert } from './revert-visibility.ts'
 import css from './ChatView.module.css'
 
 interface ChatNodeSeatProps extends ChatNodeOwnerProps {
   readonly nodeKey: string
+  /** Current revert view. Seats at or after the boundary render nothing. */
+  readonly revert: SessionRevertView | undefined
   /** A replaced Builder must rebind keyed hooks even when references and keys survive. */
   readonly nodeStore: ChatNodeStore
   readonly useChatNode: ChatViewSlotProps['useChatNode']
@@ -44,7 +48,7 @@ function turnOf(node: ChatNode | undefined): number | undefined {
  */
 export const ChatNodeSeat = memo(function ChatNodeSeat({
   nodeKey, groupPart, useChatNode, useChatNodeProcess, usePresentation,
-  cwd, openFile, openSkill, inspectCall, forkAt,
+  cwd, openFile, openSkill, inspectCall, forkAt, revertAt, revert,
   loadImage, renderMessageImages, fileMentions, useStore, actions, renderSlot, t,
 }: ChatNodeSeatProps) {
   const node = useChatNode(nodeKey)
@@ -129,15 +133,16 @@ export const ChatNodeSeat = memo(function ChatNodeSeat({
       openSkill,
       inspectCall,
       forkAt,
+      revertAt,
       loadImage,
       renderMessageImages,
       fileMentions,
       turnProcess,
     }, [
-    node, groupPart, cwd, openFile, openSkill, inspectCall, forkAt,
+    node, groupPart, cwd, openFile, openSkill, inspectCall, forkAt, revertAt,
     loadImage, renderMessageImages, fileMentions, turnProcess,
   ])
-  if (routedNode === undefined || owner === null) return null
+  if (routedNode === undefined || owner === null || seqHiddenByRevert(revert, routedNode.anchorSeq)) return null
   // Runtime dispatch owns the correlation: every Node's discriminant is the
   // keyed-slot entry passed alongside that same Node. TypeScript does not
   // distribute an object containing a union into a union of objects itself.

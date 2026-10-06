@@ -11689,6 +11689,227 @@
       }
     },
     {
+      "key": "event:session/revert/cleared",
+      "kind": "event",
+      "event": "session/revert/cleared",
+      "surface": false,
+      "digest": "a895527b566946881523811a1f5d33a9f1052767d1b3773fd5674727d2d31feb",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 4,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 6,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [],
+            "indices": [
+              {
+                "key": 2,
+                "value": 3
+              }
+            ]
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "primitive",
+            "type": "never"
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "literal",
+            "value": "session/revert/cleared"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:session/revert/committed",
+      "kind": "event",
+      "event": "session/revert/committed",
+      "surface": false,
+      "digest": "756c26fc06a7f81b49b6d6dc472cff301736b132378894782833decb5a5d867a",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 3,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 4,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "atSeq",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "session/revert/committed"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:session/revert/staged",
+      "kind": "event",
+      "event": "session/revert/staged",
+      "surface": false,
+      "digest": "4c980477e995c940e10e9ac1c9c8f0910123a5aa93d47b29f1e2f1ba727ec122",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 4,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 5,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "atSeq",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "prev",
+                "type": 3,
+                "optional": true
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "atSeq",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "session/revert/staged"
+          }
+        ]
+      }
+    },
+    {
       "key": "event:session/title",
       "kind": "event",
       "event": "session/title",
@@ -21913,6 +22134,11 @@
       "sources": []
     },
     {
+      "digest": "0b53e0c6c7419cadcb0cddd4c57ccc98e121b278d6a5f7347d8c394eff76a1bc",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "0b6d718c693fdf7f06dcccb0bcbbabe78cc63514eafc62d6b2a3899735279d6f",
       "names": [
         "packages/goal/goal/src/types.ts#GoalRef"
@@ -22466,6 +22692,11 @@
       "sources": []
     },
     {
+      "digest": "2afbb76fcde488d475e2a269fbd89a73f5e831ccdcdd445752062752053ce424",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "2c4c21f19f426a58f2dac914e34313aa43f8408972de857a486d1f086d5adb6c",
       "names": [],
       "sources": []
@@ -22585,7 +22816,7 @@
         "packages/core/session/src/types.ts#SurfaceOp"
       ],
       "sources": [
-        "packages/core/session/src/types.ts:462"
+        "packages/core/session/src/types.ts:484"
       ]
     },
     {
@@ -22908,6 +23139,11 @@
       "sources": [
         "packages/core/session/src/types.ts:193"
       ]
+    },
+    {
+      "digest": "4c980477e995c940e10e9ac1c9c8f0910123a5aa93d47b29f1e2f1ba727ec122",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "4cd48f3e5108bd6ebedf7301c3638839b8b2b9db8dbd493974177fbdeb91a01b",
@@ -23499,6 +23735,14 @@
       "sources": []
     },
     {
+      "digest": "713b183f153d651f0be7b6d582df6862cf0d9bf7755a98787693aa91ff57e963",
+      "names": [],
+      "sources": [
+        "packages/core/session/src/types.ts:436",
+        "packages/core/session/src/types.ts:449"
+      ]
+    },
+    {
       "digest": "7180844e1066230c5e891f1b9ccd942423b0fe48aac6ded7eef2a285b288a732",
       "names": [],
       "sources": []
@@ -23536,6 +23780,11 @@
     },
     {
       "digest": "756b5e23a5cb2c7f486f366a828f7461c88902af21125bd6810881f4ccbff6cc",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "756c26fc06a7f81b49b6d6dc472cff301736b132378894782833decb5a5d867a",
       "names": [],
       "sources": []
     },
@@ -24114,6 +24363,13 @@
       "sources": []
     },
     {
+      "digest": "9f89ad71f60c58cecfd5ceef6a6fafc28a57366c838df53a5f86efa959a595b4",
+      "names": [],
+      "sources": [
+        "packages/core/session/src/types.ts:434"
+      ]
+    },
+    {
       "digest": "a0a2e5c42e1c929445ecd1cd70f49be6b66441894ec72c08e8ae332821d4a3cb",
       "names": [],
       "sources": []
@@ -24246,6 +24502,11 @@
       "sources": [
         "packages/interaction/commands/src/types.ts:105"
       ]
+    },
+    {
+      "digest": "a895527b566946881523811a1f5d33a9f1052767d1b3773fd5674727d2d31feb",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "a8a2b9011fc067862df7ce40748868467e5778283d7ac193c13f77684a914c57",
@@ -24530,6 +24791,11 @@
       "sources": []
     },
     {
+      "digest": "b6d3a06529a72810d1d4038b89409a7ac8d2804531073051b951a85af36c1598",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "b6ef9c6210be8350cd465f485cf520031fffa6bf3809c61a1e713e834c5982d0",
       "names": [],
       "sources": [
@@ -24650,7 +24916,7 @@
       "digest": "bcf0caf62d964b2fcf5404bd5c909cfa9a21c3f3c96e6b7e36d9e33565223825",
       "names": [],
       "sources": [
-        "packages/core/session/src/types.ts:464"
+        "packages/core/session/src/types.ts:486"
       ]
     },
     {
@@ -25184,6 +25450,11 @@
       "sources": [
         "packages/api/session-controller/src/types.ts:100"
       ]
+    },
+    {
+      "digest": "f0d4d35a2f77027ccfbc9b6b774b92f27eba1aadc2cf523147e3629bbfb646b5",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "f1687f982fa3d41ef29e159feed154ecd13af4dd209acaee16038f223f2e9402",

@@ -107,6 +107,7 @@ function sessionSnapshot(overrides: Partial<TestSessionSnapshot> = {}): TestSess
     promptAttempted: true,
     awaitingFirstTurn: false,
     ...overrides,
+    revert: overrides.revert ?? { staged: null, committed: [] },
   }
 }
 
@@ -456,6 +457,8 @@ function makeHarness(
     loadImage: vi.fn(() => Promise.reject(new Error('not used'))),
     chatScroll,
     forkAt,
+    revertAt: () => {},
+    clearRevert: () => {},
     // Absent-service default; mention tests override with a real resolver.
     fileMentions: () => undefined,
     t,

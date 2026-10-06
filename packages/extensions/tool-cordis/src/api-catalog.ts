@@ -2370,6 +2370,38 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'sessionRevert',
+    summary: '`ctx.sessionRevert`: stage, clear, and commit one session\'s revert boundary.',
+    description: '`ctx.sessionRevert`: stage, clear, and commit one session\'s revert boundary.',
+    methods: [
+      {
+        signature: 'bindFiles(files: SessionRevertFiles): void',
+        description: 'Attach worktree restore. The snapshot plugin calls this once it is mounted.',
+        parameters: [{ name: 'files', description: 'capture and restore callbacks.' }],
+      },
+      {
+        signature: '@Remote(\'stage\') async stage(agent: Agent, atSeq: SessionSeq): Promise<SessionRevertStageResult>',
+        description: 'Hide `atSeq` and every later event. File restore and the log append wait until any earlier stage, clear, or commit for this session has finished.',
+        parameters: [{ name: 'agent', description: 'live agent whose log receives the marker.' }, { name: 'atSeq', description: 'seq of an existing `user/message`.' }],
+        returns: 'the staged boundary.',
+        throws: ['{@link RemoteError} `session/revert-busy` when the agent is running or has pending input.', '{@link RemoteError} `session/revert-invalid` when `atSeq` is not a visible user message.'],
+      },
+      {
+        signature: '@Remote(\'clear\') async clear(agent: Agent): Promise<SessionRevertClearResult>',
+        description: 'Drop the staged boundary. Frozen ranges stay hidden. File restore and the log append wait until any earlier stage, clear, or commit for this session has finished.',
+        parameters: [{ name: 'agent', description: 'live agent.' }],
+        returns: 'whether a stage was cleared.',
+        throws: ['{@link RemoteError} `session/revert-busy` when the agent is running or has pending input.'],
+      },
+      {
+        signature: '@Remote(\'commit\') commit(agent: Agent): Promise<SessionRevertCommitResult>',
+        description: 'Freeze the staged boundary. No-op when nothing is staged. Waits until an in-flight stage or clear for this session has appended. Called before a human prompt is logged, and by redo\'s full restore path only through clear.',
+        parameters: [{ name: 'agent', description: 'live agent.' }],
+        returns: 'whether a stage was frozen.',
+      },
+    ],
+  },
+  {
     key: 'sessions',
     summary: 'In-memory session store (`ctx.sessions`).',
     description: 'In-memory session store (`ctx.sessions`).\n\nPersistence is intentionally not implemented here — the agent lifecycle attaches a session-log writer to each published session\'s write handle; a session published outside that lifecycle persists nothing.',
@@ -2446,6 +2478,40 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         parameters: [{ name: 'request', description: 'Session identity whose cwd and preset select the catalog view.' }, { name: 'signal', description: 'caller lifetime carried by the Remote transport; admitted catalog reads retain their existing completion semantics.' }],
         returns: 'user-invocable skill metadata without loading skill bodies.',
         throws: ['RemoteError when the Session cannot be inspected or no registry can serve it.'],
+      },
+    ],
+  },
+  {
+    key: 'sessionSnapshots',
+    summary: '`ctx.sessionSnapshots`: capture a worktree and restore it when a revert moves.',
+    description: '`ctx.sessionSnapshots`: capture a worktree and restore it when a revert moves.',
+    methods: [
+      {
+        signature: 'async capture(directory: string): Promise<SnapshotId | undefined>',
+        description: 'Capture `directory` when snapshots are enabled and it is a git checkout.',
+        parameters: [{ name: 'directory', description: 'project path.' }],
+        returns: 'the tree id, or undefined when capture is off or the path is not git.',
+      },
+      {
+        signature: 'restore(directory: string, snapshot: SnapshotId): Promise<void>',
+        description: 'Restore one tree into its worktree.',
+        parameters: [{ name: 'directory', description: 'project path.' }, { name: 'snapshot', description: 'tree id from {@link capture}.' }],
+      },
+      {
+        signature: 'diff(directory: string, from: SnapshotId, to: SnapshotId): Promise<FileDiff[]>',
+        description: 'Diff two trees.',
+        parameters: [{ name: 'directory', description: 'project path.' }, { name: 'from', description: 'older tree.' }, { name: 'to', description: 'newer tree.' }],
+        returns: 'per-path addition and deletion counts.',
+      },
+      {
+        signature: 'rememberTurn(sessionId: SessionId, turn: number, snapshot: SnapshotId): void',
+        description: 'Remember the snapshot that belongs to one turn. The pre-step hook calls this.',
+        parameters: [{ name: 'sessionId', description: 'session whose turn just opened.' }, { name: 'turn', description: 'turn number from `turn/start`.' }, { name: 'snapshot', description: 'tree captured before that turn wrote files.' }],
+      },
+      {
+        signature: 'collect(): Promise<void>',
+        description: 'Drop snapshot trees that exceed the configured count, disk, or age limits. A tree an open revert is using stays. A remembered turn does not.',
+        parameters: [],
       },
     ],
   },
@@ -5241,10 +5307,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface FileBlock {\n    type: \'file\';\n    attachment: FileAttachmentRef;\n}',
   },
   {
-    name: 'FileDiff',
-    declaration: 'export interface FileDiff {\n    path: string;\n    oldText: string | null;\n    newText: string;\n}',
-  },
-  {
     name: 'FileLocation',
     declaration: 'export interface FileLocation {\n    path: string;\n    line?: number;\n}',
   },
@@ -6969,6 +7031,22 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SessionResultRange {\n    from?: number;\n    to?: number;\n}',
   },
   {
+    name: 'SessionRevertClearResult',
+    declaration: 'export interface SessionRevertClearResult {\n    readonly cleared: boolean;\n}',
+  },
+  {
+    name: 'SessionRevertCommitResult',
+    declaration: 'export interface SessionRevertCommitResult {\n    readonly committed: boolean;\n}',
+  },
+  {
+    name: 'SessionRevertFiles',
+    declaration: 'export interface SessionRevertFiles {\n    stage(agent: Agent, atSeq: SessionSeq, prev: {\n        atSeq: number;\n    } | null): Promise<void>;\n    clear(agent: Agent): Promise<void>;\n    commit(agent: Agent): void;\n}',
+  },
+  {
+    name: 'SessionRevertStageResult',
+    declaration: 'export interface SessionRevertStageResult {\n    readonly atSeq: number;\n    readonly changed: boolean;\n}',
+  },
+  {
     name: 'SessionSearchCursor',
     declaration: 'export type SessionSearchCursor = Branded<\'SessionSearchCursor\'>;',
   },
@@ -7267,6 +7345,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SkillViewOptions',
     declaration: 'export interface SkillViewOptions extends SkillLookupOptions {\n    readonly scope?: ScopeKey | undefined;\n}',
+  },
+  {
+    name: 'SnapshotId',
+    declaration: 'export type SnapshotId = Branded<\'SnapshotId\'>;',
   },
   {
     name: 'SpawnTeammateRequest',

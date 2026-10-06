@@ -2563,6 +2563,36 @@ export interface JsonRpcConfig {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-sdk-jsonrpc-server -->
 
+<!-- BEGIN GENERATED config-catalog:@lulu-ling/dsh-session-file-snapshot -->
+<a id="deepseek-aidsh-session-file-snapshot"></a>
+
+## `@lulu-ling/dsh-session-file-snapshot`
+
+- `inject`: `sessionRevert`
+- `refs`: `Volatile` (`@deepseek-ai/cordis`)
+- `source`: [`packages/session/session-file-snapshot/src/index.ts:44`](../packages/session/session-file-snapshot/src/index.ts)
+
+```ts config-catalog
+/** Plugin config. Every limit has a default and applies live. */
+export interface SessionSnapshotConfig {
+  /** `false` makes capture, restore, and sweeps do nothing. Omitted means on. */
+  snapshots?: boolean
+  /** Directory that holds snapshot git dirs. Omitted uses `$DSH_HOME/snapshot`. */
+  dataDir?: string
+  /** Maximum snapshot trees kept for one worktree. Default {@link DEFAULT_HISTORY_LIMIT}. */
+  historyLimit: Volatile<number>
+  /** Maximum bytes of the snapshot root. Default {@link DEFAULT_DISK_LIMIT_BYTES}. */
+  diskLimitBytes: Volatile<number>
+  /** Maximum snapshot age in milliseconds. Default {@link DEFAULT_MAX_AGE_MS}. */
+  maxAgeMs: Volatile<number>
+  /** Sweep period in milliseconds. Default {@link DEFAULT_GC_INTERVAL_MS}. */
+  gcIntervalMs: Volatile<number>
+  /** Largest untracked file, in bytes, that enters a tree. Default {@link MAX_UNTRACKED_BYTES}. */
+  maxUntrackedBytes: Volatile<number>
+}
+```
+<!-- END GENERATED config-catalog:@lulu-ling/dsh-session-file-snapshot -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-session-log-deepseek -->
 <a id="deepseek-aidsh-session-log-deepseek"></a>
 
@@ -4387,6 +4417,7 @@ export interface Config {
 | `@deepseek-ai/dsh-client-ui-settings-plugin-inventory` | — | [`packages/client/ui-settings-plugin-inventory/src/index.ts`](../packages/client/ui-settings-plugin-inventory/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-settings-plugins` | — | [`packages/client/ui-settings-plugins/src/index.ts`](../packages/client/ui-settings-plugins/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-settings-session-log` | — | [`packages/client/ui-settings-session-log/src/index.ts`](../packages/client/ui-settings-session-log/src/index.ts) |
+| `@lulu-ling/dsh-client-ui-settings-session-snapshot` | — | [`packages/client/ui-settings-session-snapshot/src/index.ts`](../packages/client/ui-settings-session-snapshot/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-settings-shell` | — | [`packages/client/ui-settings-shell/src/index.ts`](../packages/client/ui-settings-shell/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-settings-subagent` | — | [`packages/client/ui-settings-subagent/src/index.ts`](../packages/client/ui-settings-subagent/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-settings-web-search` | — | [`packages/client/ui-settings-web-search/src/index.ts`](../packages/client/ui-settings-web-search/src/index.ts) |
@@ -4432,6 +4463,7 @@ export interface Config {
 | `@deepseek-ai/dsh-session` | — | [`packages/core/session/src/index.ts`](../packages/core/session/src/index.ts) |
 | `@deepseek-ai/dsh-session-checkpoint-policy` | `llm` · `sessionPersistence` · `sessions` · `tools` | [`packages/session/session-checkpoint-policy/src/index.ts`](../packages/session/session-checkpoint-policy/src/index.ts) |
 | `@deepseek-ai/dsh-session-projection` | — | [`packages/session/session-projection/src/index.ts`](../packages/session/session-projection/src/index.ts) |
+| `@lulu-ling/dsh-session-revert` | `agents` · `sessionProjections` | [`packages/session/session-revert/src/index.ts`](../packages/session/session-revert/src/index.ts) |
 | `@deepseek-ai/dsh-session-stats` | `sessionProjections` | [`packages/session/session-stats/src/index.ts`](../packages/session/session-stats/src/index.ts) |
 | `@deepseek-ai/dsh-session-turn-outline` | `sessionProjections` | [`packages/session/session-turn-outline/src/index.ts`](../packages/session/session-turn-outline/src/index.ts) |
 | `@deepseek-ai/dsh-settings` | `configEditor` · `profileContext` | [`packages/settings/settings/src/index.ts`](../packages/settings/settings/src/index.ts) |

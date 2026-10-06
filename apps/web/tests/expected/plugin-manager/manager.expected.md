@@ -6,7 +6,7 @@
   - button "添加插件"
   - button "选择添加插件方式"
 - heading "官方" [level=3]
-- text: "8"
+- text: "9"
 - list:
   - listitem:
     - button "查看 智能体团队": 智能体团队
@@ -36,6 +36,9 @@
   - listitem:
     - button "查看 网页搜索": 网页搜索
     - text: 设置 DeepSeek 的搜索提供方。
+  - listitem:
+    - button "查看 文件快照": 文件快照
+    - text: 设置撤回时工作区快照的保留数量、清理节奏和未跟踪文件大小。
 - heading "已安装" [level=3]
 - text: "2"
 - list:

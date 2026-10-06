@@ -425,6 +425,28 @@ export interface SessionEventMap {
    * so tolerating concurrent writers needs a signal beyond the log.
    */
   'session/end-seed': { inherited?: true }
+  /**
+   * Hides the user message at `atSeq` and every later event until clear or commit.
+   * `prev` is the staged boundary this one replaced. Appended with `ignorable: true`,
+   * so a harness that does not know this type opens the log and shows every message.
+   * A harness that knows it still hides the range.
+   */
+  'session/revert/staged': {
+    atSeq: SessionSeq
+    prev?: { atSeq: SessionSeq }
+  }
+  /**
+   * Drops the active staged boundary. Committed ranges stay hidden.
+   * Appended with `ignorable: true`. An older harness opens the log and leaves
+   * the stage in place.
+   */
+  'session/revert/cleared': Record<string, never>
+  /**
+   * Freezes the staged boundary. Events with `seq >= atSeq` and `seq <` this
+   * event stay out of model context, and the stage is cleared. Appended with
+   * `ignorable: true`. An older harness opens the log and keeps those messages visible.
+   */
+  'session/revert/committed': { atSeq: SessionSeq }
 }
 
 /** The appendable event-type keys of {@link SessionEventMap}, plugin-merged extensions included. */

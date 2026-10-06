@@ -1,0 +1,37 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/client/ui-settings-session-snapshot/README.md
+/:
+  en: 90599405acf49d78
+  zh: 9dac330b9a52888c
+/lulu-ling-dsh-client-ui-settings-session-snapshot:
+  en: 1ebc3e9d687b61c7
+  zh: 42f85c99ee286944
+/lulu-ling-dsh-client-ui-settings-session-snapshot/summary:
+  en: bd32a2050b748d96
+  zh: 4847e6823f016035
+/lulu-ling-dsh-client-ui-settings-session-snapshot/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 09388d293f9be9cb
+/lulu-ling-dsh-client-ui-settings-session-snapshot/use-this-package:
+  en: 667890676ce211f3
+  zh: 3797c9fb5848419b
+/lulu-ling-dsh-client-ui-settings-session-snapshot/understand-the-implementation:
+  en: c5c1e35f61f33013
+  zh: 1071112b363977f0
+/lulu-ling-dsh-client-ui-settings-session-snapshot/further-exploration:
+  en: 99d5906865096733
+  zh: ff76acd80dcde142
+/lulu-ling-dsh-client-ui-settings-session-snapshot/model-experience:
+  en: 6b7c6f82ab6c8435
+  zh: 4517689c899abcbe
+/lulu-ling-dsh-client-ui-settings-session-snapshot/model-experience/kv-cache-effect:
+  en: ca75c51c89c2c9b0
+  zh: 6e1c9a8fdde89577
+/lulu-ling-dsh-client-ui-settings-session-snapshot/known-limitations-and-deferred-work:
+  en: 4f54154472329179
+  zh: a94a35d992d8993f
+/lulu-ling-dsh-client-ui-settings-session-snapshot/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: e88aeb617ffb74ea

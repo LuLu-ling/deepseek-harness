@@ -25,6 +25,7 @@ File-mention providers receive the viewed Session ID with the closing-turn owner
 - [Grouped rendering](#grouped-rendering)
 - [Scroll ownership](#scroll-ownership)
 - [Model Experience](#model-experience)
+- [Revert](#revert)
 - [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
 - [Dev Note](#dev-note)
 
@@ -158,6 +159,12 @@ None, as this package renders logged conversation state in the browser and regis
 #### KV Cache effect
 
 None; Chat presentation does not assemble or mutate provider requests.
+
+<a id="revert"></a>
+## Revert
+
+`/undo` hides the last visible user message and everything after it. `/redo` reveals the next hidden user message, or clears the staged boundary when none remains. Primary+Alt+U and Primary+Alt+R do the same from the page or the composer. A staged boundary shows a restore row under the transcript and a collapsible list above the composer. Copy on a user message sits beside an undo icon for that message. File rollback, when the working directory is a git checkout, is performed by [session file snapshots](../../session/session-file-snapshot/README.md).
+
 
 ## Known Limitations and Deferred Work
 

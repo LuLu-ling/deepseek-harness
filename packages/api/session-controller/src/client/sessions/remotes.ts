@@ -7,7 +7,8 @@
 
 import type { ClientRemote } from '@deepseek-ai/dsh-api-gateway/client'
 import type { CommandSubmitAttachment } from '@deepseek-ai/dsh-commands/types'
-import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { SessionId, SessionSeq } from '@deepseek-ai/dsh-session/types'
+import type { SessionRevertClearResult, SessionRevertStageResult } from '@lulu-ling/dsh-session-revert/client'
 import type {
   SubagentInterruptReceipt, SubagentPromptReceipt, SubagentPromptRequest,
 } from '@deepseek-ai/dsh-subagent/client'
@@ -36,11 +37,17 @@ export interface SessionSubagentsRemote {
     mode: 'continuable',
   ): Promise<RemoteResult<SubagentInterruptReceipt>>
 }
+/** Narrow revert namespace consumed by a Client Session. */
+export interface SessionRevertRemote {
+  stage(sessionId: SessionId, atSeq: SessionSeq): Promise<RemoteResult<SessionRevertStageResult>>
+  clear(sessionId: SessionId): Promise<RemoteResult<SessionRevertClearResult>>
+}
 
 /** Generated Remote namespaces consumed by the Client Session object layer. */
 export interface SessionRemotes {
   readonly $stream: ClientRemote['$stream']
   readonly commands: SessionCommandsRemote
   readonly session: SessionRemote
+  readonly sessionRevert: SessionRevertRemote
   readonly subagents: SessionSubagentsRemote
 }

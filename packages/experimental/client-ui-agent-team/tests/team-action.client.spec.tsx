@@ -83,6 +83,7 @@ function bench(options: {
     lastAgentError: null,
     promptAttempted: false,
     awaitingFirstTurn: false,
+    revert: { staged: null, committed: [] },
   })
   const useSessions = bindSnapshotSelector(sessions)
   const injected: TeamActionInjected = { openTeammate: vi.fn() }

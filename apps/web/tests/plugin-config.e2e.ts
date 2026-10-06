@@ -93,8 +93,8 @@ describe('web e2e: plugin configuration pages', () => {
     await panel.getByRole('button', { name: '查看 网页搜索', exact: true }).waitFor({ timeout: 20_000 })
     const official = panel.locator('[data-plugin-group="official"]')
     expect(await official.locator('[data-plugin-package]').count()).toBe(OPTIONAL_BUNDLES.length)
-    expect(await official.locator('[data-plugin-item]').count()).toBe(4)
-    for (const title of ['终端', 'Agent 循环', '子智能体', '网页搜索']) {
+    expect(await official.locator('[data-plugin-item]').count()).toBe(5)
+    for (const title of ['终端', 'Agent 循环', '子智能体', '网页搜索', '文件快照']) {
       expect(await official.getByRole('button', { name: `查看 ${title}`, exact: true }).count()).toBe(1)
     }
     // A card carries the one-liner; the fields wait for the page.

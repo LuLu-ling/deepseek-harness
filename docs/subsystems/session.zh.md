@@ -954,6 +954,55 @@ Types: [SessionId](core.zh.md) · [SessionInspection](persistence.zh.md) · [Ses
 
 Source: [`packages/api/session-controller/src/index.ts`](../../packages/api/session-controller/src/index.ts)
 
+<a id="ctxsessionrevert--sessionrevertservice"></a>
+
+### `ctx.sessionRevert` — `SessionRevertService`
+
+`ctx.sessionRevert`: stage, clear, and commit one session's revert boundary.
+
+```ts cordis-catalog
+/**
+ * Attach worktree restore. The snapshot plugin calls this once it is mounted.
+ * @param files - capture and restore callbacks.
+ */
+bindFiles(files: SessionRevertFiles): void
+
+/**
+ * Hide `atSeq` and every later event.
+ * File restore and the log append wait until any earlier stage, clear, or
+ * commit for this session has finished.
+ * @param agent - live agent whose log receives the marker.
+ * @param atSeq - seq of an existing `user/message`.
+ * @returns the staged boundary.
+ * @throws {@link RemoteError} `session/revert-busy` when the agent is running or has pending input.
+ * @throws {@link RemoteError} `session/revert-invalid` when `atSeq` is not a visible user message.
+ */
+@Remote('stage') async stage(agent: Agent, atSeq: SessionSeq): Promise<SessionRevertStageResult>
+
+/**
+ * Drop the staged boundary. Frozen ranges stay hidden.
+ * File restore and the log append wait until any earlier stage, clear, or
+ * commit for this session has finished.
+ * @param agent - live agent.
+ * @returns whether a stage was cleared.
+ * @throws {@link RemoteError} `session/revert-busy` when the agent is running or has pending input.
+ */
+@Remote('clear') async clear(agent: Agent): Promise<SessionRevertClearResult>
+
+/**
+ * Freeze the staged boundary. No-op when nothing is staged.
+ * Waits until an in-flight stage or clear for this session has appended.
+ * Called before a human prompt is logged, and by redo's full restore path only through clear.
+ * @param agent - live agent.
+ * @returns whether a stage was frozen.
+ */
+@Remote('commit') commit(agent: Agent): Promise<SessionRevertCommitResult>
+```
+
+Types: [Agent](core.zh.md)
+
+Source: [`packages/session/session-revert/src/index.ts`](../../packages/session/session-revert/src/index.ts)
+
 <a id="ctxsessions--sessionstore"></a>
 
 ### `ctx.sessions` — `SessionStore`
@@ -1099,6 +1148,55 @@ fork(source: SessionForkSource, boundary?: SessionSeq, childSessionId?: SessionI
 Types: [CreateSessionOptions](persistence.zh.md) · [PrepareSessionOptions](persistence.zh.md) · [SessionId](core.zh.md)
 
 Source: [`packages/core/session/src/index.ts`](../../packages/core/session/src/index.ts)
+
+<a id="ctxsessionsnapshots--sessionsnapshotservice"></a>
+
+### `ctx.sessionSnapshots` — `SessionSnapshotService`
+
+`ctx.sessionSnapshots`: capture a worktree and restore it when a revert moves.
+
+```ts cordis-catalog
+/**
+ * Capture `directory` when snapshots are enabled and it is a git checkout.
+ * @param directory - project path.
+ * @returns the tree id, or undefined when capture is off or the path is not git.
+ */
+async capture(directory: string): Promise<SnapshotId | undefined>
+
+/**
+ * Restore one tree into its worktree.
+ * @param directory - project path.
+ * @param snapshot - tree id from {@link capture}.
+ */
+restore(directory: string, snapshot: SnapshotId): Promise<void>
+
+/**
+ * Diff two trees.
+ * @param directory - project path.
+ * @param from - older tree.
+ * @param to - newer tree.
+ * @returns per-path addition and deletion counts.
+ */
+diff(directory: string, from: SnapshotId, to: SnapshotId): Promise<FileDiff[]>
+
+/**
+ * Remember the snapshot that belongs to one turn. The pre-step hook calls this.
+ * @param sessionId - session whose turn just opened.
+ * @param turn - turn number from `turn/start`.
+ * @param snapshot - tree captured before that turn wrote files.
+ */
+rememberTurn(sessionId: SessionId, turn: number, snapshot: SnapshotId): void
+
+/**
+ * Drop snapshot trees that exceed the configured count, disk, or age limits.
+ * A tree an open revert is using stays. A remembered turn does not.
+ */
+collect(): Promise<void>
+```
+
+Types: [SessionId](core.zh.md)
+
+Source: [`packages/session/session-file-snapshot/src/index.ts`](../../packages/session/session-file-snapshot/src/index.ts)
 
 <a id="api-session-events"></a>
 

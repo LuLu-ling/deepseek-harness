@@ -56,6 +56,7 @@ function snapshotWith(queue: UserMessage[], nextStep: UserMessage[] = []): TestS
     hasMore: false, loadingOlder: false, promptError: null, blank: false, subagent: null,
     pendingSubmissions: [],
     lastAgentError: null, promptAttempted: true, awaitingFirstTurn: false,
+    revert: { staged: null, committed: [] },
     testInbox: { 'next-turn': queue, 'next-step': nextStep },
   }
 }

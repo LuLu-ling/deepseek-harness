@@ -102,6 +102,7 @@ export const inject = [
   'remote',
   'remote.commands',
   'remote.session',
+  'remote.sessionRevert',
   'remote.subagents',
 ]
 

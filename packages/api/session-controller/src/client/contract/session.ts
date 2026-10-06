@@ -11,6 +11,7 @@ import type { AttachmentIdType, FileAttachmentRef, ImageAttachmentRef } from '@d
 import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
 import type { SessionId, SessionSeq } from '@deepseek-ai/dsh-session/types'
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
+import type { SessionRevertClearResult, SessionRevertStageResult } from '@lulu-ling/dsh-session-revert/client'
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import type { PromptContentPart, QueueAction, SessionRequestId } from '../../types.ts'
 import type { PendingSubmissionAttachment, SessionSnapshot } from './snapshot.ts'
@@ -145,6 +146,17 @@ export interface ISession {
    * @returns the admission result, or the Remote face's error branch.
    */
   command(line: string): Promise<RemoteResult<{ matched: boolean }>>
+  /**
+   * Hide this user message and everything after it.
+   * @param atSeq - seq of the user message that becomes the boundary.
+   * @returns the staged boundary, or the business error.
+   */
+  revertStage(atSeq: SessionSeq): Promise<RemoteResult<SessionRevertStageResult>>
+  /**
+   * Drop the staged boundary. Frozen ranges stay hidden.
+   * @returns whether a stage was cleared, or the business error.
+   */
+  revertClear(): Promise<RemoteResult<SessionRevertClearResult>>
 }
 
 /**

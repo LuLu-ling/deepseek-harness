@@ -4,6 +4,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
 import type { RemoteFailure } from '@deepseek-ai/dsh-typert-protocol'
 import type { SessionRequestId } from '../../types.ts'
+import type { SessionRevertView } from '@lulu-ling/dsh-session-revert/client'
 
 /** One image displayed by a local submission echo before durable admission. */
 export interface PendingSubmissionImage {
@@ -88,4 +89,9 @@ export interface SessionSnapshot {
   readonly promptAttempted: boolean
   /** The first accepted prompt has not reached a durable `turn/start` event. */
   readonly awaitingFirstTurn: boolean
+  /**
+   * Staged boundary and frozen ranges. `staged` is null when nothing is staged.
+   * Committed ranges stay hidden after the stage is cleared or frozen.
+   */
+  readonly revert: SessionRevertView
 }

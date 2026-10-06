@@ -701,6 +701,10 @@ describe('prompt and cancel errors', () => {
       subagents: client.ctx.remote.subagents,
       commands: mock.remote.commands,
       $stream: client.ctx.remote.$stream.bind(client.ctx.remote),
+      sessionRevert: {
+        stage: () => Promise.reject(new Error('unused')),
+        clear: () => Promise.reject(new Error('unused')),
+      },
     })
     onTestFinished(() => session.dispose())
     mock.remote.commands.execute.mockResolvedValueOnce(ok(undefined))

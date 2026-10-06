@@ -25,6 +25,7 @@ kind: "package-reference"
 - [分组渲染](#grouped-rendering)
 - [滚动归属](#scroll-ownership)
 - [模型体验](#model-experience)
+- [撤回](#revert)
 - [已知限制与暂缓事项](#known-limitations-and-deferred-work)
 - [开发备注](#dev-note)
 
@@ -158,6 +159,12 @@ Chat 会在历史前插与 renderer 重新挂载时恢复语义锚点，并且�
 #### KV Cache 影响
 
 无；Chat 呈现不会组装或修改提供方请求。
+
+<a id="revert"></a>
+## 撤回
+
+`/undo` 隐藏最后一条仍可见的用户消息及其后的全部内容。`/redo` 恢复下一条被隐藏的用户消息；没有下一条时清除暂存边界。Primary+Alt+U 与 Primary+Alt+R 在页面或输入框中做同样的事。存在暂存边界时，记录下方出现恢复行，输入框上方出现可折叠列表。用户消息的复制按钮旁边有该条消息的撤回图标。工作目录是 git 检出时，文件回滚由 [会话文件快照](../../session/session-file-snapshot/README.zh.md) 完成。
+
 
 ## 已知限制与暂缓事项
 

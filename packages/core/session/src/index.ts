@@ -21,9 +21,13 @@ import type { SessionSurface, SessionMessageProjection } from './surface.ts'
 import { foldRequestHeader } from './request-header.ts'
 import { ToolHistoryProjection } from './tool-history.ts'
 import type { ToolHistory } from '@deepseek-ai/dsh-llm'
+import { applyRevertEvent, assertRevertEventData, emptyRevertFold, revertExcludes } from './revert.ts'
+import type { RevertFoldState } from './revert.ts'
 
 import { buildForkSeed } from './fork.ts'
 
+export { applyRevertEvent, assertRevertEventData, emptyRevertFold, foldRevert, revertExcludes } from './revert.ts'
+export type { RevertFoldState, RevertRange, RevertStage } from './revert.ts'
 export { buildForkSeed } from './fork.ts'
 export * from './types.ts'
 export { SessionPreparation } from './preparation.ts'
@@ -228,6 +232,7 @@ function assertSessionEventEnvelope(value: unknown, index: number): asserts valu
     throw new Error(`seed event at index ${index} has an invalid event envelope`)
   }
   validateSessionEventData(event as SessionEvent, `seed ${type} at index ${index}`)
+  assertRevertEventData(event as SessionEvent, `seed ${type} at index ${index}`)
   switch (type) {
     case 'request/header':
     case 'developer/message':
@@ -580,7 +585,9 @@ export class Session {
         } catch (error: unknown) {
           throw new Error(`invalid seed event at index ${index}: ${error instanceof Error ? error.message : 'invalid surface metadata'}`)
         }
-        this.log.push(mode === 'snapshot' ? deepFreeze(snapshot) : snapshot)
+        const stored = mode === 'snapshot' ? deepFreeze(snapshot) : snapshot
+        this.log.push(stored)
+        this.noteRevert(stored)
       }
     }
     this.firstLiveSeq = SessionLogOffset(this.log.length)
@@ -737,14 +744,17 @@ export class Session {
     if (entry?.appending) {
       throw new Error('session append cannot reenter while another append is being published')
     }
+    const ignorable = type === 'session/revert/staged' || type === 'session/revert/cleared' || type === 'session/revert/committed'
     const event = deepFreeze({
       type,
       seq: SessionSeq(this.log.length),
       time: Date.now(),
       data: dataSnapshot,
+      ...(ignorable ? { ignorable: true as const } : {}),
       ...(surfaceMetadataSnapshot as { surfaceOp?: unknown; sourceEventSeqs?: unknown }),
     } as unknown as SessionEvent<T>)
     validateSessionEventData(event, `session event "${type}" at seq ${event.seq}`)
+    assertRevertEventData(event, `session event "${type}" at seq ${event.seq}`)
     this.surfaceManager.validateNext(event as SessionEvent)
 
     if (entry !== undefined) entry.appending = true
@@ -755,6 +765,7 @@ export class Session {
         callbacks = collectSessionCallbacks(entry.emitCtx, [entry.carrier, 'session/event', ...callbackArgs])
       }
       this.log.push(event as SessionEvent)
+      this.noteRevert(event as SessionEvent)
       this.eventsSnapshot = undefined
       if (callbacks !== undefined && entry !== undefined) {
         invokeContainedSessionObservers(entry.emitCtx, 'session/event', entry.id, callbackArgs, callbacks)
@@ -834,6 +845,24 @@ export class Session {
   private derivedNodes = 0
   /** {@link SurfaceManager.contentGeneration} the cache was built under. */
   private derivedGeneration = 0
+  /** Revert fold kept in lockstep with the log. */
+  private readonly revertState: RevertFoldState = emptyRevertFold()
+  /** Bumps when a revert marker is appended, invalidating {@link derived}. */
+  private revertGeneration = 0
+  /** {@link revertGeneration} the derived-message cache was built under. */
+  private derivedRevertGeneration = 0
+
+  /**
+   * Advance the revert fold when `event` is a revert marker.
+   * @param event - event just committed to the log.
+   */
+  private noteRevert(event: SessionEvent): void {
+    if (event.type !== 'session/revert/staged'
+      && event.type !== 'session/revert/cleared'
+      && event.type !== 'session/revert/committed') return
+    applyRevertEvent(this.revertState, event)
+    this.revertGeneration++
+  }
 
   /**
    * Derive the LLM message history by walking the ordered sequences of
@@ -845,8 +874,9 @@ export class Session {
    * {@link deriveEventMessage}, with logged message projections applied
    * without changing node membership or message identity.
    *
-   * CACHED: pure tail growth costs O(new nodes); a replacement or message projection
-   * ({@link SessionSurface.contentGeneration}) rebuilds. The returned array is
+   * CACHED: pure tail growth costs O(new nodes); a replacement, message projection
+   * ({@link SessionSurface.contentGeneration}), or revert marker rebuilds. A staged
+   * or committed revert omits the hidden seqs. The returned array is
    * a fresh snapshot per call (later appends never grow an array a caller
    * already holds); the `Message` objects in it are SHARED and **deep-frozen**.
    * Unchanged content reuses frozen event data; projected blocks are frozen
@@ -857,12 +887,14 @@ export class Session {
     const surface = this.surface
     const nodes = surface.nodes
     const generation = surface.contentGeneration
-    if (generation !== this.derivedGeneration) {
+    if (generation !== this.derivedGeneration || this.revertGeneration !== this.derivedRevertGeneration) {
       this.derived = []
       this.derivedNodes = 0
       this.derivedGeneration = generation
+      this.derivedRevertGeneration = this.revertGeneration
     }
     for (const seq of nodes.slice(this.derivedNodes)) {
+      if (revertExcludes(this.revertState, seq)) continue
       // Surface sequences are built from this.log — seq is always a valid
       // index by construction. The non-null assertion expresses that invariant.
       // oxlint-disable-next-line typescript/no-non-null-assertion
