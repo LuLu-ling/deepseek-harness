@@ -722,6 +722,19 @@ describe('per-model reasoning efforts', () => {
     expect(declare({ high: null })).toThrow(/only "off" may leave it empty/)
     expect(declare({ high: '' })).toThrow(/must not be an empty string/)
   })
+
+  it('records a model defaultEffort and refuses one the declaration does not offer', () => {
+    const resolved = resolveProfiles(declared([{
+      id: 'm', reasoningEfforts: { off: null, high: 'high' }, defaultEffort: 'high',
+    }]))
+    expect(resolved.get('acme-gateway')?.configuredDefaultEffort.get('m')).toBe('high')
+    expect(() => resolveProfiles(declared([{
+      id: 'm', reasoningEfforts: { high: 'high' }, defaultEffort: 'max',
+    }]))).toThrow(/defaultEffort/)
+    expect(() => resolveProfiles(declared([{
+      id: 'm', reasoningEfforts: false, defaultEffort: 'high',
+    }]))).toThrow(/defaultEffort/)
+  })
 })
 
 describe('modelOverrides', () => {

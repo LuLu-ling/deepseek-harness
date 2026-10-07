@@ -123,13 +123,14 @@ The model picker offers an **Effort** menu for a model that declares reasoning l
         reasoning: high
         models:
           - id: my-reasoner
+            defaultEffort: high
             reasoningEfforts:
               off:
               high: high
               max: max
 ```
 
-Each key is a level the menu offers, and its value is the spelling sent on the wire as `reasoning_effort`, so `max: xhigh` renames a level for a gateway with its own vocabulary. Only `off` may stay empty, because for most endpoints not thinking is the parameter's absence. The route's `reasoning` is the level used while a session has picked none; choosing an effort in the picker saves it, with the model, as the default for new sessions.
+Each key is a level the menu offers, and its value is the spelling sent on the wire as `reasoning_effort`, so `max: xhigh` renames a level for a gateway with its own vocabulary. Only `off` may stay empty, because for most endpoints not thinking is the parameter's absence. A model's `defaultEffort` is the level the picker starts from and wins over the route's `reasoning`. Leave the model field unset to keep the route level; when neither is set, the picker offers Default and the request omits the effort. Choosing an effort in the picker saves it, with the model, as the default for new sessions.
 
 An `off` left empty sends nothing, which only stops a model that thinks on request; an `off` given a value sends that value as `reasoning_effort` instead. A model that thinks unless told not to — DeepSeek V4 behind an OpenAI-compatible gateway, for example — needs `compat.thinkingFormat: deepseek`, which makes `off` send `thinking: {type: disabled}` and every other level send `thinking: {type: enabled}` beside the effort:
 

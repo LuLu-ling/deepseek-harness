@@ -94,7 +94,7 @@ export interface Config {
 
 - `inject`: `agents` · `sessions` · `llm` · `tools` · `systemPrompt` · `sessionProjections`
 - `refs`: [`AgentOptions`](subsystems/core.md) · [`SessionId`](subsystems/core.md) · `Volatile` (`@deepseek-ai/cosmokit`)
-- `source`: [`packages/core/agent-loop/src/index.ts:292`](../packages/core/agent-loop/src/index.ts)
+- `source`: [`packages/core/agent-loop/src/index.ts:307`](../packages/core/agent-loop/src/index.ts)
 
 ```ts config-catalog
 /** Agent-loop plugin configuration. */
@@ -303,7 +303,7 @@ export interface Config {
 ## `@deepseek-ai/dsh-api-workspace-controller`
 
 - `inject`: `typert` · `workspaceRegistry`
-- `source`: [`packages/api/workspace-controller/src/index.ts:33`](../packages/api/workspace-controller/src/index.ts)
+- `source`: [`packages/api/workspace-controller/src/index.ts:35`](../packages/api/workspace-controller/src/index.ts)
 
 ```ts config-catalog
 /** First-use directory policy for the Host account. */
@@ -1610,7 +1610,7 @@ export interface Config extends ProtocolConfig {
 
 - `inject`: `llm`
 - `refs`: `Api` (`@earendil-works/pi-ai`) · `CacheRetention` (`@earendil-works/pi-ai`) · `Model` (`@earendil-works/pi-ai`) · `ModelThinkingLevel` (`@earendil-works/pi-ai`) · `OpenAICompletionsCompat` (`@earendil-works/pi-ai`) · [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts) · `ThinkingBudgets` (`@earendil-works/pi-ai`) · `Transport` (`@earendil-works/pi-ai`) · `Volatile` (`@deepseek-ai/cordis`)
-- `source`: [`packages/llm/llm-pi-ai/src/config.ts:222`](../packages/llm/llm-pi-ai/src/config.ts)
+- `source`: [`packages/llm/llm-pi-ai/src/config.ts:224`](../packages/llm/llm-pi-ai/src/config.ts)
 
 ```ts config-catalog
 /** Plugin configuration: the provider routes this instance owns. */
@@ -1752,6 +1752,12 @@ export interface PiAiModelProfile {
    * declares the offered levels and their wire spellings.
    */
   reasoningEfforts?: false | PiAiReasoningEfforts
+  /**
+   * Level the selector starts from. Absent keeps the route's `reasoning`,
+   * or no default when that is absent too.
+   * A dict `reasoningEfforts` must declare this level.
+   */
+  defaultEffort?: ModelThinkingLevel
   /** pi-ai wire-compatibility switches for this model, winning over the route's per field; one its protocol does not declare is refused. */
   compat?: PiAiCompatProfile
 }
@@ -2560,36 +2566,6 @@ export interface JsonRpcConfig {
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-sdk-jsonrpc-server -->
-
-<!-- BEGIN GENERATED config-catalog:@lulu-ling/dsh-session-file-snapshot -->
-<a id="deepseek-aidsh-session-file-snapshot"></a>
-
-## `@lulu-ling/dsh-session-file-snapshot`
-
-- `inject`: `sessionRevert`
-- `refs`: `Volatile` (`@deepseek-ai/cordis`)
-- `source`: [`packages/session/session-file-snapshot/src/index.ts:44`](../packages/session/session-file-snapshot/src/index.ts)
-
-```ts config-catalog
-/** Plugin config. Every limit has a default and applies live. */
-export interface SessionSnapshotConfig {
-  /** `false` makes capture, restore, and sweeps do nothing. Omitted means on. */
-  snapshots?: boolean
-  /** Directory that holds snapshot git dirs. Omitted uses `$DSH_HOME/snapshot`. */
-  dataDir?: string
-  /** Maximum snapshot trees kept for one worktree. Default {@link DEFAULT_HISTORY_LIMIT}. */
-  historyLimit: Volatile<number>
-  /** Maximum bytes of the snapshot root. Default {@link DEFAULT_DISK_LIMIT_BYTES}. */
-  diskLimitBytes: Volatile<number>
-  /** Maximum snapshot age in milliseconds. Default {@link DEFAULT_MAX_AGE_MS}. */
-  maxAgeMs: Volatile<number>
-  /** Sweep period in milliseconds. Default {@link DEFAULT_GC_INTERVAL_MS}. */
-  gcIntervalMs: Volatile<number>
-  /** Largest untracked file, in bytes, that enters a tree. Default {@link MAX_UNTRACKED_BYTES}. */
-  maxUntrackedBytes: Volatile<number>
-}
-```
-<!-- END GENERATED config-catalog:@lulu-ling/dsh-session-file-snapshot -->
 
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-session-log-deepseek -->
 <a id="deepseek-aidsh-session-log-deepseek"></a>
@@ -4368,6 +4344,36 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-workspace-changes -->
 
+<!-- BEGIN GENERATED config-catalog:@lulu-ling/dsh-session-file-snapshot -->
+<a id="lulu-lingdsh-session-file-snapshot"></a>
+
+## `@lulu-ling/dsh-session-file-snapshot`
+
+- `inject`: `sessionRevert`
+- `refs`: `Volatile` (`@deepseek-ai/cordis`)
+- `source`: [`packages/session/session-file-snapshot/src/index.ts:44`](../packages/session/session-file-snapshot/src/index.ts)
+
+```ts config-catalog
+/** Plugin config. Every limit has a default and applies live. */
+export interface SessionSnapshotConfig {
+  /** `false` makes capture, restore, and sweeps do nothing. Omitted means on. */
+  snapshots?: boolean
+  /** Directory that holds snapshot git dirs. Omitted uses `$DSH_HOME/snapshot`. */
+  dataDir?: string
+  /** Maximum snapshot trees kept for one worktree. Default {@link DEFAULT_HISTORY_LIMIT}. */
+  historyLimit: Volatile<number>
+  /** Maximum bytes of the snapshot root. Default {@link DEFAULT_DISK_LIMIT_BYTES}. */
+  diskLimitBytes: Volatile<number>
+  /** Maximum snapshot age in milliseconds. Default {@link DEFAULT_MAX_AGE_MS}. */
+  maxAgeMs: Volatile<number>
+  /** Sweep period in milliseconds. Default {@link DEFAULT_GC_INTERVAL_MS}. */
+  gcIntervalMs: Volatile<number>
+  /** Largest untracked file, in bytes, that enters a tree. Default {@link MAX_UNTRACKED_BYTES}. */
+  maxUntrackedBytes: Volatile<number>
+}
+```
+<!-- END GENERATED config-catalog:@lulu-ling/dsh-session-file-snapshot -->
+
 ## Loadable plugins with no config
 
 These load from a `cordis.yml` entry with no `config:` block; they declare no configuration API.
@@ -4415,7 +4421,6 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 | `@deepseek-ai/dsh-client-ui-settings-plugin-inventory` | — | [`packages/client/ui-settings-plugin-inventory/src/index.ts`](../packages/client/ui-settings-plugin-inventory/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-settings-plugins` | — | [`packages/client/ui-settings-plugins/src/index.ts`](../packages/client/ui-settings-plugins/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-settings-session-log` | — | [`packages/client/ui-settings-session-log/src/index.ts`](../packages/client/ui-settings-session-log/src/index.ts) |
-| `@lulu-ling/dsh-client-ui-settings-session-snapshot` | — | [`packages/client/ui-settings-session-snapshot/src/index.ts`](../packages/client/ui-settings-session-snapshot/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-settings-shell` | — | [`packages/client/ui-settings-shell/src/index.ts`](../packages/client/ui-settings-shell/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-settings-subagent` | — | [`packages/client/ui-settings-subagent/src/index.ts`](../packages/client/ui-settings-subagent/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-settings-web-search` | — | [`packages/client/ui-settings-web-search/src/index.ts`](../packages/client/ui-settings-web-search/src/index.ts) |
@@ -4461,7 +4466,6 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 | `@deepseek-ai/dsh-session` | — | [`packages/core/session/src/index.ts`](../packages/core/session/src/index.ts) |
 | `@deepseek-ai/dsh-session-checkpoint-policy` | `llm` · `sessionPersistence` · `sessions` · `tools` | [`packages/session/session-checkpoint-policy/src/index.ts`](../packages/session/session-checkpoint-policy/src/index.ts) |
 | `@deepseek-ai/dsh-session-projection` | — | [`packages/session/session-projection/src/index.ts`](../packages/session/session-projection/src/index.ts) |
-| `@lulu-ling/dsh-session-revert` | `agents` · `sessionProjections` | [`packages/session/session-revert/src/index.ts`](../packages/session/session-revert/src/index.ts) |
 | `@deepseek-ai/dsh-session-stats` | `sessionProjections` | [`packages/session/session-stats/src/index.ts`](../packages/session/session-stats/src/index.ts) |
 | `@deepseek-ai/dsh-session-turn-outline` | `sessionProjections` | [`packages/session/session-turn-outline/src/index.ts`](../packages/session/session-turn-outline/src/index.ts) |
 | `@deepseek-ai/dsh-settings` | `configEditor` · `profileContext` | [`packages/settings/settings/src/index.ts`](../packages/settings/settings/src/index.ts) |
@@ -4477,6 +4481,8 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 | `@deepseek-ai/dsh-user-questions` | — | [`packages/interaction/user-questions/src/index.ts`](../packages/interaction/user-questions/src/index.ts) |
 | `@deepseek-ai/dsh-webhook` | `agents` · `agentDefaultModel` · `agentPresets` · `permissionPresets` · `sessionTitle` · `workspaceRegistry` | [`packages/webhook/webhook/src/index.ts`](../packages/webhook/webhook/src/index.ts) |
 | `@deepseek-ai/dsh-workspace` | `storageDomain` · `sessionPersistence` | [`packages/workspace/workspace/src/index.ts`](../packages/workspace/workspace/src/index.ts) |
+| `@lulu-ling/dsh-client-ui-settings-session-snapshot` | — | [`packages/client/ui-settings-session-snapshot/src/index.ts`](../packages/client/ui-settings-session-snapshot/src/index.ts) |
+| `@lulu-ling/dsh-session-revert` | `agents` · `sessionProjections` | [`packages/session/session-revert/src/index.ts`](../packages/session/session-revert/src/index.ts) |
 <!-- END GENERATED config-catalog:no-config -->
 
 ## Seam packages (not directly loadable)

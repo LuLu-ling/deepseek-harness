@@ -366,6 +366,33 @@ describe('Web session model selection', () => {
     } finally { await ctx.fiber.dispose() }
   })
 
+  it('hides deepseek-official when its key is unset and another provider is ready', async () => {
+    const ctx = new Context()
+    await ctx.plugin(LlmRuntime)
+    ctx.llm.registerAdapter(['deepseek-official'], new CatalogAdapter('DeepSeek', [
+      { provider: 'deepseek-official', id: 'deepseek-chat', name: 'DeepSeek Chat' },
+    ]))
+    ctx.llm.registerAdapter(['acme'], new CatalogAdapter('Acme', [
+      { provider: 'acme', id: 'acme-model', name: 'Acme' },
+    ]))
+    const configured = vi.fn(async (ref: string) => ({ configured: ref === 'ACME_KEY', writable: true }))
+    ctx.provide('credentials', { describe: configured } as never)
+    ctx.provide('settings', { describe: () => [
+      { ns: 'llm-deepseek-api-key', value: { apiKeyEnv: 'DEEPSEEK_API_KEY' } },
+      { ns: 'llm-pi-ai', value: { providers: { acme: { apiKeyEnv: 'ACME_KEY' } } } },
+    ] } as never)
+    ctx.effect(() => ctx.llm.registerConfigurableProviders([
+      { provider: 'deepseek-official', displayName: 'DeepSeek', settingsNs: 'llm-deepseek-api-key', settingsPath: [] },
+      { provider: 'acme', displayName: 'Acme', settingsNs: 'llm-pi-ai', settingsPath: ['providers', 'acme'] },
+    ]))
+    try {
+      const selection = { provider: 'deepseek-official', model: 'deepseek-chat' }
+      expect((await buildModelCatalog(ctx, selection)).groups.map(group => group.id)).toEqual(['acme'])
+      configured.mockImplementation(async () => ({ configured: true, writable: true }))
+      expect((await buildModelCatalog(ctx, selection)).groups.map(group => group.id)).toEqual(['deepseek-official', 'acme'])
+    } finally { await ctx.fiber.dispose() }
+  })
+
   it.each(['settings', 'credentials'] as const)('refuses account initialization without %s inspection', async (missing) => {
     const ctx = new Context()
     if (missing !== 'settings') ctx.provide('settings', {} as never)

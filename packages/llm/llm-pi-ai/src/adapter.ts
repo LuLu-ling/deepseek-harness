@@ -154,6 +154,13 @@ function describableReasoningLevel(
     : undefined
 }
 
+/** The effort a request names, else this model's default, else the route's. */
+function requestedEffort(model: Model<Api>, profile: ResolvedPiAiProviderProfile): ModelThinkingLevel | ReasoningEffortIdType | undefined {
+  const configured = profile.configuredDefaultEffort.get(model.id)
+  if (configured !== undefined && describableReasoningLevel(model, configured) !== undefined) return configured
+  return profile.reasoning
+}
+
 /** Validate an explicit Harness/profile effort without invoking pi-ai's clamp. */
 function resolveReasoningLevel(
   model: Model<Api>,
@@ -300,7 +307,8 @@ export class PiAiAdapter extends LlmAdapter {
   private modelInfo(snapshot: PiAiSnapshot, provider: string, model: string): LlmResolvedModelInfo {
     const profile = this.profileOf(snapshot, provider)
     const resolvedModel = this.modelOf(snapshot, provider, model)
-    const defaultLevel = describableReasoningLevel(resolvedModel, profile.reasoning)
+    const configured = describableReasoningLevel(resolvedModel, profile.configuredDefaultEffort.get(model))
+    const defaultLevel = configured ?? describableReasoningLevel(resolvedModel, profile.reasoning)
     // Only a cap the deployment configured is a request default; the
     // catalog's `maxTokens` sizes the model and stops there.
     const configuredMaxTokens = profile.configuredMaxTokens.get(model)
@@ -343,7 +351,7 @@ export class PiAiAdapter extends LlmAdapter {
     const model = this.modelOf(snapshot, options.provider, options.model)
     const reasoning = resolveReasoningLevel(
       model,
-      options.reasoningEffort ?? profile.reasoning,
+      options.reasoningEffort ?? requestedEffort(model, profile),
     )
     const apiKey = await this.config.resolveApiKey(options.provider, profile)
 

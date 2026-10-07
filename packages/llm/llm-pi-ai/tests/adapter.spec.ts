@@ -603,6 +603,35 @@ describe('provider profile lifecycle', () => {
     })
   })
 
+  it('prefers a model defaultEffort over the route level, including when the request omits one', async () => {
+    vi.stubEnv('PI_TEST_KEY', 'test-key')
+    const server = await mockServer([{ events: textEvents }])
+    const ctx = new Context()
+    await ctx.plugin(LlmRuntime)
+    await ctx.plugin(LlmPiAi, {
+      providers: {
+        'acme-gateway': {
+          apiKeyEnv: 'PI_TEST_KEY',
+          api: 'openai-completions',
+          baseURL: `${server.url}/v1`,
+          reasoning: 'low',
+          models: [{
+            id: 'acme-think',
+            contextWindow: 65_536,
+            maxTokens: 4096,
+            reasoningEfforts: { off: null, high: 'ultra' },
+            defaultEffort: 'high',
+          }],
+        },
+      },
+    })
+    await expect(ctx.llm.resolveModelInfo('acme-gateway', 'acme-think')).resolves.toMatchObject({
+      reasoning: { defaultEffort: ReasoningEffortId('high') },
+    })
+    await assemble(ctx, { provider: 'acme-gateway', model: 'acme-think', messages: [] })
+    expect(server.requests[0]).toMatchObject({ reasoning_effort: 'ultra' })
+  })
+
   it('sends the declared wire spelling and refuses undeclared levels before network I/O', async () => {
     vi.stubEnv('PI_TEST_KEY', 'test-key')
     const server = await mockServer([{ events: textEvents }])

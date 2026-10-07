@@ -618,6 +618,12 @@ export interface PiAiModelProfile {
    * declares the offered levels and their wire spellings.
    */
   reasoningEfforts?: false | PiAiReasoningEfforts
+  /**
+   * Level the selector starts from. Absent keeps the route's `reasoning`,
+   * or no default when that is absent too.
+   * A dict `reasoningEfforts` must declare this level.
+   */
+  defaultEffort?: ModelThinkingLevel
   /** pi-ai wire-compatibility switches for this model, winning over the route's per field; one its protocol does not declare is refused. */
   compat?: PiAiCompatProfile
 }
@@ -827,6 +833,8 @@ export interface RouteCatalog {
    * picked, so only an explicit configuration lands here.
    */
   configuredMaxTokens: ReadonlyMap<string, number>
+  /** Per-model selector defaults this profile named, by model id. */
+  configuredDefaultEffort: ReadonlyMap<string, ModelThinkingLevel>
 }
 
 /**
@@ -892,6 +900,7 @@ export function resolveRouteModels(
   assertOfferedCompatFields(provider, 'route', request.compat)
   const seen = new Set<string>()
   const configuredMaxTokens = new Map<string, number>()
+  const configuredDefaultEffort = new Map<string, ModelThinkingLevel>()
   const resolveEntry = (entry: PiAiModelProfile): Model<Api> => {
     assertOfferedCompatFields(provider, `model "${entry.id}"`, entry.compat)
     if (entry.id.length === 0) invalid(provider, 'has a model with an empty id')
@@ -922,6 +931,16 @@ export function resolveRouteModels(
     // Only a value the profile named is a deployment choice; the catalog's is
     // the model's capability and stays out of request defaults.
     if (entry.maxTokens !== undefined) configuredMaxTokens.set(entry.id, entry.maxTokens)
+    if (entry.defaultEffort !== undefined) {
+      const efforts = entry.reasoningEfforts
+      if (efforts === false) {
+        invalid(provider, `model "${entry.id}" sets defaultEffort while reasoningEfforts is false`)
+      }
+      if (typeof efforts === 'object' && efforts !== null && efforts[entry.defaultEffort] === undefined) {
+        invalid(provider, `model "${entry.id}" defaultEffort "${entry.defaultEffort}" is not one of its reasoningEfforts`)
+      }
+      configuredDefaultEffort.set(entry.id, entry.defaultEffort)
+    }
     return {
       // The installed entry lays the floor, and the fields below override it.
       // Enumerating instead would silently drop every `Model` field this
@@ -966,5 +985,5 @@ export function resolveRouteModels(
     invalid(provider, `sets compat "${field}", but no model on the route speaks a protocol that takes it;`
       + ` it exists on ${takers.join(', ')}`)
   }
-  return { models: serviceableModels, configuredMaxTokens, modelErrors }
+  return { models: serviceableModels, configuredMaxTokens, configuredDefaultEffort, modelErrors }
 }
