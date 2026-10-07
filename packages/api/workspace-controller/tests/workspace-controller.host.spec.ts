@@ -50,7 +50,19 @@ function deferred<T>(): Deferred<T> {
   return { promise, resolve }
 }
 
-async function harness(options: { systemDocuments?: boolean } = {}) {
+async function harness(options: { systemDocuments?: boolean; plugin: true }): Promise<{
+  controller: undefined
+  ctx: Context
+  root: string
+  storageDomain: DomainFacility
+}>
+async function harness(options?: { systemDocuments?: boolean; plugin?: false }): Promise<{
+  controller: WorkspaceController
+  ctx: Context
+  root: string
+  storageDomain: DomainFacility
+}>
+async function harness(options: { systemDocuments?: boolean; plugin?: boolean } = {}) {
   const root = realpathSync.native(mkdtempSync(join(tmpdir(), 'dsh-workspace-controller-')))
   tempDirs.push(root)
   const ctx = new Context()
@@ -68,7 +80,9 @@ async function harness(options: { systemDocuments?: boolean } = {}) {
     lookups: { configure: () => dispose },
     contexts: { configureHost: () => dispose },
   } as never)
-  const controller = new WorkspaceController(ctx, options.systemDocuments === true ? {} : { documentsDirectory: root })
+  const controller = options.plugin === true
+    ? undefined
+    : new WorkspaceController(ctx, options.systemDocuments === true ? {} : { documentsDirectory: root })
   return { controller, ctx, root, storageDomain }
 }
 
@@ -476,5 +490,68 @@ describe('first-use Remote', () => {
     vi.spyOn(ctx.workspaceRegistry, 'initializeDefault').mockRejectedValueOnce(new Error('permission denied'))
     await expect(controller.initializeDefault(new AbortController().signal))
       .rejects.toThrow('permission denied')
+  })
+})
+
+describe('WorkspaceController deleteSession', () => {
+  it('rejects an unknown session and an active session before cleanup', async () => {
+    const { controller, ctx } = await harness()
+    await expect(controller.deleteSession({ sessionId: SessionId('missing') }))
+      .rejects.toMatchObject({ code: 'session/not-found' })
+
+    const session = ctx.sessions.create(SessionId('busy'))
+    ctx.on('workspace/session-activity', async ({ sessionId }, next) => {
+      const rest = await next()
+      return sessionId === session.id ? [{ kind: 'probe' }, ...rest] : rest
+    })
+    await expect(controller.deleteSession({ sessionId: session.id })).rejects.toMatchObject({
+      code: 'workspace/session-active',
+      details: { sessionId: session.id, activity: [{ kind: 'probe' }] },
+    })
+    expect(ctx.sessions.get(session.id)).toBe(session)
+  })
+
+  it('disposes a live idle session and returns the registry sets', async () => {
+    const { controller, ctx } = await harness()
+    const session = ctx.sessions.create(SessionId('idle'))
+    const persistence = ctx.sessionPersistence as { delete: (id: SessionId) => Promise<void> }
+    persistence.delete = vi.fn(async () => undefined)
+    const removed: SessionId[] = []
+    ctx.on('session/disposed', (disposed) => { removed.push(disposed.id) })
+
+    await expect(controller.deleteSession({ sessionId: session.id })).resolves.toEqual({
+      archivedSessionIds: [],
+      pinnedSessionIds: [],
+    })
+    expect(removed).toEqual([session.id])
+    expect(ctx.sessions.get(session.id)).toBeUndefined()
+    expect(persistence.delete).toHaveBeenCalledWith(session.id)
+  })
+
+  it('deletes a live session from the controller plugin fiber', async () => {
+    const { ctx, root } = await harness({ plugin: true })
+    const session = ctx.sessions.create(SessionId('plugin-idle'))
+    const persistence = ctx.sessionPersistence as { delete: (id: SessionId) => Promise<void> }
+    persistence.delete = vi.fn(async () => undefined)
+    await ctx.plugin(WorkspaceController, { documentsDirectory: root })
+    const controller = ctx.get('workspaceController')
+    if (controller === undefined) throw new Error('workspace controller did not load')
+    await expect(controller.deleteSession({ sessionId: session.id })).resolves.toEqual({
+      archivedSessionIds: [],
+      pinnedSessionIds: [],
+    })
+    expect(ctx.sessions.get(session.id)).toBeUndefined()
+    expect(persistence.delete).toHaveBeenCalledWith(session.id)
+  })
+
+  it('maps a log deletion failure after the registry write', async () => {
+    const { controller, ctx } = await harness()
+    const session = ctx.sessions.create(SessionId('stuck'))
+    const persistence = ctx.sessionPersistence as { delete: (id: SessionId) => Promise<void> }
+    persistence.delete = vi.fn(async () => { throw new Error('disk full') })
+    await expect(controller.deleteSession({ sessionId: session.id })).rejects.toMatchObject({
+      code: 'workspace/delete-failed',
+      message: expect.stringContaining('disk full'),
+    })
   })
 })

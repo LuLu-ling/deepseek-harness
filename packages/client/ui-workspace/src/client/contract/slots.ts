@@ -135,7 +135,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     /**
      * The rows of one Session's "..." menu, in ascending `order`. ui-workspace
      * registers the shipped rows here — `pin` (100), `rename` (200), `fork`
-     * (300), `archive` (400) — so a plugin row is placed by its own `order`
+     * (300), `archive` (400), `delete` (500) — so a plugin row is placed by its own `order`
      * among them. Use a package-namespaced `id`; reusing a shipped id at
      * another `priority` shadows that row. Each entry renders one
      * `role="menuitem"` `<button>` (the shipped rows use ui-primitives'
@@ -175,8 +175,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     }
     /**
      * The hover buttons at the end of one Session row, in ascending `order`,
-     * after the "..." menu trigger. ui-workspace registers `archive` (100) and
-     * `pin` (200) here. An entry renders one icon button (or nothing, when its
+     * after the "..." menu trigger. ui-workspace registers `archive` (100)
+     * and `pin` (200). An entry renders one icon button (or nothing, when its
      * action does not apply to the row) and owns the action it performs. Clicks
      * inside the strip stay in the strip, so the button needs no propagation
      * handling to keep the row from opening.
@@ -378,6 +378,36 @@ export interface SessionArchiveConfirmInjected {
   stopAndArchiveSession: (sessionId: SessionId) => Promise<void>
 }
 
+/** Delete menu share. The callback opens the confirmation; a busy session disables the row. */
+export interface DeleteSessionInjected {
+  hooks: {
+    /** Sessions whose rows show in-progress work. */
+    busy: HostObservable<ReadonlySet<SessionId>>
+  }
+  /** Open the delete confirmation. */
+  deleteSession: (sessionId: SessionId) => void
+}
+
+/** A delete confirmation the delete action asked for. */
+export interface SessionDeleteConfirmRequest {
+  /** Session to delete. */
+  sessionId: SessionId
+  /** The row's display title, named in the dialog. */
+  displayTitle: string
+}
+
+/** Delete dialog share. Success waits until the session list drops the id. */
+export interface SessionDeleteConfirmInjected {
+  hooks: {
+    /** The confirmation asked for, until the dialog consumes or cancels it. */
+    deleteRequest: HostObservable<SessionDeleteConfirmRequest | null>
+  }
+  /** Consume or cancel the pending confirmation. */
+  settleSessionDelete: () => void
+  /** Delete the session. Resolves when the Host accepts. */
+  deleteSession: (sessionId: SessionId) => Promise<void>
+}
+
 /** Fork action share. */
 export interface ForkSessionInjected {
   /** Fork a Session at its last completed turn; the child arrives through the Host list. */
@@ -437,6 +467,13 @@ export type SessionArchiveConfirmProps =
   & PropsLocale<'workspace'>
   & Omit<SessionArchiveConfirmInjected, 'hooks'>
   & PropsHooks<SessionArchiveConfirmInjected['hooks']>
+
+/** Props of the delete-session dialog entry in `shell.overlay`. */
+export type SessionDeleteConfirmProps =
+  PropsRuntime<'shell.overlay'>
+  & PropsLocale<'workspace'>
+  & Omit<SessionDeleteConfirmInjected, 'hooks'>
+  & PropsHooks<SessionDeleteConfirmInjected['hooks']>
 
 /**
  * Props of the row toast entry in `shell.overlay`. The declared viewing store

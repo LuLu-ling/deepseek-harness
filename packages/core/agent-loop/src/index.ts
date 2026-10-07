@@ -100,6 +100,7 @@ class FactoryOwnership {
   private readonly teardown = new AbortController()
   private readonly inactive = Promise.withResolvers<void>()
   private readonly liveAgents = new Set<() => Promise<void>>()
+  private readonly releases = new Map<SessionId, () => Promise<void>>()
   private startupTasks = new Set<Promise<void>>()
 
   constructor(private readonly fiber: Context['fiber']) {}
@@ -114,9 +115,23 @@ class FactoryOwnership {
   }
 
   /** Track one live agent's shared teardown until it has run. */
-  track(dispose: () => Promise<void>): () => void {
+  track(id: SessionId, dispose: () => Promise<void>): () => void {
     this.liveAgents.add(dispose)
-    return () => { this.liveAgents.delete(dispose) }
+    this.releases.set(id, dispose)
+    return () => {
+      this.liveAgents.delete(dispose)
+      if (this.releases.get(id) === dispose) this.releases.delete(id)
+    }
+  }
+
+  /**
+   * Dispose one live agent this factory owns. An unowned id resolves.
+   * @param id - shared agent/session identity.
+   * @returns resolution after teardown, or immediately when none is tracked.
+   */
+  release(id: SessionId): Promise<void> {
+    const dispose = this.releases.get(id)
+    return dispose === undefined ? Promise.resolve() : dispose()
   }
 
   /** Join config startup work that begins before an agent exists. */
@@ -569,7 +584,7 @@ export class AgentLoop extends Service implements AgentFactory {
         throw new AggregateError(failures, `agent "${id}" disposal failed`)
       }
     })())
-    const untrack = this.ownership.track(dispose)
+    const untrack = this.ownership.track(id, dispose)
     let unfollowOwner: () => Promise<void> | void
     try {
       unfollowOwner = ownerCtx.effect(function* () {
@@ -637,6 +652,15 @@ export class AgentLoop extends Service implements AgentFactory {
       void dispose().catch(() => {})
       throw error
     }
+  }
+
+  /**
+   * Dispose one live agent this factory published. An unowned id resolves.
+   * @param id - shared agent/session identity.
+   * @returns resolution after teardown.
+   */
+  release(id: SessionId): Promise<void> {
+    return this.ownership.release(id)
   }
 
   /**

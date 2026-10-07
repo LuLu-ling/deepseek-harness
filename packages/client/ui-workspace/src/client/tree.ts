@@ -394,6 +394,47 @@ function runningChildCount(list: SessionListState, parentId: SessionId, statuses
   ) ?? 0
 }
 
+/** Activity fields shared by the status dot and the delete gate. */
+function sessionActivity(
+  summary: SessionSummary,
+  list: SessionListState,
+  statuses: SessionStatuses,
+): Pick<SessionNode, 'running' | 'runningSubagentCount' | 'pendingInteraction'> {
+  const status = statuses.get(summary.id)
+  const pendingInteraction = visiblePendingKind(status?.pendingInteraction?.kind)
+  return {
+    running: status?.running ?? summary.running,
+    runningSubagentCount: runningChildCount(list, summary.id, statuses),
+    ...(pendingInteraction === undefined ? {} : { pendingInteraction }),
+  }
+}
+
+/**
+ * Whether a session row shows in-progress work.
+ * @param activity - the row's activity fields.
+ * @returns true when delete stays disabled.
+ */
+export function sessionRowBusy(
+  activity: Pick<SessionNode, 'running' | 'runningSubagentCount' | 'pendingInteraction'>,
+): boolean {
+  return activity.running || activity.runningSubagentCount > 0 || activity.pendingInteraction !== undefined
+}
+
+/**
+ * Sessions whose rows show in-progress work. Blank rows are omitted.
+ * @param list - session list snapshot.
+ * @param statuses - unified UI status by session.
+ * @returns the busy session ids.
+ */
+export function busySessionIds(list: SessionListState, statuses: SessionStatuses): ReadonlySet<SessionId> {
+  const busy = new Set<SessionId>()
+  for (const summary of Object.values(list.byId)) {
+    if (summary.blank) continue
+    if (sessionRowBusy(sessionActivity(summary, list, statuses))) busy.add(summary.id)
+  }
+  return busy
+}
+
 function sessionNode(
   s: SessionSummary,
   list: SessionListState,
@@ -402,18 +443,16 @@ function sessionNode(
   archived: ReadonlySet<SessionId>,
 ): SessionNode {
   const status = statuses.get(s.id)
-  const pendingInteraction = visiblePendingKind(status?.pendingInteraction?.kind)
+  const activity = sessionActivity(s, list, statuses)
   return {
     id: s.id,
     title: sessionTitle(s),
     blank: s.blank,
-    running: status?.running ?? s.running,
-    runningSubagentCount: runningChildCount(list, s.id, statuses),
+    ...activity,
     completed: status?.completionUnread === true,
     pinned: !archived.has(s.id) && pinned.has(s.id),
     archived: archived.has(s.id),
     updatedAt: s.updatedAt,
-    ...(pendingInteraction === undefined ? {} : { pendingInteraction }),
   }
 }
 
@@ -601,16 +640,12 @@ export function deriveSearchResults(
     items: ordered.slice(0, limit).map((summary) => {
       const match = contentBySession.get(summary.id)
       const status = statuses.get(summary.id)
-      const pendingInteraction = visiblePendingKind(status?.pendingInteraction?.kind)
+      const activity = sessionActivity(summary, list, statuses)
       return {
         id: summary.id,
         title: sessionTitle(summary),
         workspace: labelOf(summary),
-        running: status?.running ?? summary.running,
-        runningSubagentCount: runningChildCount(list, summary.id, statuses),
-        ...(pendingInteraction === undefined
-          ? {}
-          : { pendingInteraction }),
+        ...activity,
         completed: status?.completionUnread === true,
         archived: archived.has(summary.id),
         ...match === undefined ? {} : { snippet: match.snippet },

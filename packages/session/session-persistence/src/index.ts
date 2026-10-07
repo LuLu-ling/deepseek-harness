@@ -199,6 +199,16 @@ export abstract class SessionPersistence extends Service {
    * @returns one snapshot per stored session.
    */
   abstract list(options?: SessionPersistenceListOptions): Promise<readonly SessionPersistenceSnapshot[]>
+
+  /**
+   * Delete one session's artifacts. The caller closes every other handle first.
+   * The id is an identity; the backend locates the directory from the stored header.
+   * @param id - stored session to delete.
+   * @returns resolution after those artifacts are gone.
+   * @throws {SessionPersistenceNotFoundError} when the id is unknown.
+   * @throws {SessionAlreadyOwnedError} when a write handle still owns the session.
+   */
+  abstract delete(id: SessionId): Promise<void>
 }
 
 export default SessionPersistence

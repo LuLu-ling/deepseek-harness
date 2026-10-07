@@ -854,9 +854,23 @@ describe('workspaces action face', () => {
     // Default unarchive mirrors it: the id leaves the same set.
     await ws.unarchiveSession('s0' as SessionId)
     expect(ws.list.getSnapshot().archivedSessionIds).toEqual(['s1'])
+    await ws.update((draft) => {
+      draft.archivedSessionIds = ['s1' as SessionId, 's9' as SessionId]
+      draft.pinnedSessionIds = ['s9' as SessionId]
+      draft.items = [{
+        workspaceId: 'w1' as WorkspaceId, path: '/w', title: 'w',
+        sessionIds: ['s1' as SessionId, 's9' as SessionId],
+        createdAt: '0', updatedAt: '0',
+      }]
+    })
+    await ws.deleteSession('s9' as SessionId)
+    expect(ws.list.getSnapshot()).toMatchObject({
+      archivedSessionIds: ['s1'], pinnedSessionIds: [],
+      items: [{ sessionIds: ['s1'] }],
+    })
     expect(ws.calls.map(c => c.method)).toEqual(
       ['create', 'create', 'rename', 'delete', 'insertBefore', 'insertSessionBefore',
-        'archiveSession', 'archiveSession', 'unarchiveSession'])
+        'archiveSession', 'archiveSession', 'unarchiveSession', 'deleteSession'])
 
     ws.stub('create', () => Promise.resolve({ workspaceId: 'ws-x', title: 'X', path: '/x', sessionIds: [] } as never))
     ws.stub('rename', () => Promise.resolve({ workspaceId: 'w1', title: 'S', path: '/s', sessionIds: [] } as never))

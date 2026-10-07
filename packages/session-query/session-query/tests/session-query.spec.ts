@@ -175,6 +175,10 @@ class TestPersistence extends SessionPersistence {
     TestPersistence.afterList?.()
     return Promise.resolve(snapshots)
   }
+
+  delete(): Promise<void> {
+    return Promise.reject(new Error('not used'))
+  }
 }
 
 async function liveContext(config: ConstructorParameters<typeof TestSessionQueryEngine>[1] = {}): Promise<Context> {

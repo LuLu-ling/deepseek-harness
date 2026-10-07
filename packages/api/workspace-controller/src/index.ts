@@ -13,6 +13,8 @@ import type {
   WorkspaceCreateRequest,
   WorkspaceCreateValue,
   WorkspaceDeleteRequest,
+  WorkspaceDeleteSessionRequest,
+  WorkspaceDeleteSessionValue,
   WorkspaceDeleteValue,
   WorkspaceFollowFrame,
   WorkspaceInsertBeforeRequest,
@@ -184,6 +186,16 @@ export class WorkspaceController extends TypertRemoteService {
   @Remote('unpinSession')
   unpinSession(request: WorkspaceUnpinSessionRequest): Promise<WorkspacePinValue> {
     return this.commands.unpinSession(request)
+  }
+
+  /**
+   * Delete one idle Session's registry membership and durable artifacts.
+   * @param request - Session identity to delete.
+   * @returns the archive and pin sets after the id is removed.
+   */
+  @Remote('deleteSession')
+  deleteSession(request: WorkspaceDeleteSessionRequest): Promise<WorkspaceDeleteSessionValue> {
+    return this.commands.deleteSession(request)
   }
 
   /**

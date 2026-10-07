@@ -1058,6 +1058,50 @@ describe('registry-global session archive', () => {
   })
 })
 
+describe('registry session delete', () => {
+  it('rejects an unknown or active session without writing', async () => {
+    const dir = await makeDir('delete-refuse')
+    const result = await harness({ sessions: [header('busy', dir, 100), header('idle', dir, 200)] })
+    const before = result.changes.length
+    await expect(result.registry.deleteSession(SessionId('ghost')))
+      .rejects.toThrow(/cannot delete session 'ghost'/)
+    result.ctx.on('workspace/session-activity', async ({ sessionId }, next) => {
+      const rest = await next()
+      return sessionId === 'busy' ? [{ kind: 'probe' }, ...rest] : rest
+    })
+    await expect(result.registry.deleteSession(SessionId('busy'))).rejects.toMatchObject({
+      name: 'WorkspaceActiveSessionError',
+      sessionId: 'busy',
+    })
+    expect(result.changes.length).toBe(before)
+    expect(result.registry.list()[0]!.sessionIds).toEqual(expect.arrayContaining(['busy', 'idle']))
+    expect(storedState(result.pool).archivedSessionIds).toEqual([])
+    expect(storedState(result.pool).pinnedSessionIds).toEqual([])
+  })
+
+  it('drops pin, archive, and workspace accounting for an idle or archived session', async () => {
+    const dir = await makeDir('delete-account')
+    const result = await harness({ sessions: [header('gone', dir, 100), header('kept', dir, 200)] })
+    await result.registry.pinSession(SessionId('gone'))
+    await result.registry.archiveSession(SessionId('kept'))
+    const workspace = result.registry.list()[0]!
+    expect(workspace.sessionIds).toEqual(expect.arrayContaining(['gone', 'kept']))
+
+    await result.registry.deleteSession(SessionId('gone'))
+    expect(result.registry.pinnedSessionIds).toEqual([])
+    expect(result.registry.archivedSessionIds).toEqual(['kept'])
+    expect(workspace.sessionIds).not.toContain('gone')
+    expect(workspace.sessionIds).toContain('kept')
+    expect(storedState(result.pool).pinnedSessionIds).toEqual([])
+    expect(storedRecord(result.pool, workspace.id).sessionIds).not.toContain('gone')
+
+    await result.registry.deleteSession(SessionId('kept'))
+    expect(result.registry.archivedSessionIds).toEqual([])
+    expect(workspace.sessionIds).not.toContain('kept')
+    expect(storedState(result.pool).archivedSessionIds).toEqual([])
+  })
+})
+
 describe('registry-global session unarchive', () => {
   it('unarchives durably in order, idempotently skips absent ids, and leaves accounting untouched', async () => {
     const dir = await makeDir('unarchive-home')

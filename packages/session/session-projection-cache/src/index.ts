@@ -169,6 +169,17 @@ export class SessionProjectionCache extends Service {
   }
 
   /**
+   * Drop the stored checkpoint for one session. A missing row resolves.
+   * Call this after the session's detach write has been queued: that write
+   * and this delete share the domain chain, so the delete runs second.
+   * @param id - session whose cache document is removed.
+   * @returns resolution after the row is gone.
+   */
+  async delete(id: SessionId): Promise<void> {
+    await this.requireTable().delete(id)
+  }
+
+  /**
    * Read only a predecessor checkpoint's title as a zero-I/O listing hint.
    *
    * The authoritative Session header supplies the lifecycle identity. A cache

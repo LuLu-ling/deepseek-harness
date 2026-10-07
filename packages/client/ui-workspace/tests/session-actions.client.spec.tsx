@@ -21,11 +21,14 @@ import { en as commonEn } from '@deepseek-ai/dsh-client-locale/src/locales/en.ts
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
 import type {
   MenuOpenState, RowToast, RowToastState, SessionArchiveConfirmInjected, SessionArchiveConfirmRequest,
-  SessionRenameDialogInjected, SessionRenameTarget,
+  SessionDeleteConfirmRequest, SessionRenameDialogInjected, SessionRenameTarget,
 } from '../src/client/contract/slots.ts'
 import {
   ArchiveSessionMenuItem, ArchiveSessionRowButton, SessionArchiveConfirmDialog,
 } from '../src/client/session-actions/ArchiveSession.tsx'
+import {
+  DeleteSessionMenuItem, SessionDeleteConfirmDialog,
+} from '../src/client/session-actions/DeleteSession.tsx'
 import { ForkSessionMenuItem } from '../src/client/session-actions/ForkSession.tsx'
 import { PinSessionMenuItem, PinSessionRowButton } from '../src/client/session-actions/PinSession.tsx'
 import { RenameSessionMenuItem, SessionRenameDialog } from '../src/client/session-actions/RenameSession.tsx'
@@ -654,4 +657,70 @@ it('shows effective Session shortcuts while menu clicks keep the row target', ()
   expect(requestSessionRename).toHaveBeenCalledWith(ROW.sessionId, ROW.displayTitle)
   expect(forkSession).toHaveBeenCalledWith(ROW.sessionId)
   expect(archiveSession).toHaveBeenCalledWith(ROW.sessionId)
+})
+
+describe('delete action', () => {
+  it('closes the menu before asking, and disables a busy row', () => {
+    const { state, setMenuOpen } = openMenu()
+    const deleteSession = vi.fn()
+    render(<DeleteSessionMenuItem {...menuRow(state)} useBusy={hook(idSet())} deleteSession={deleteSession} />)
+    fireEvent.click(screen.getByRole('menuitem', { name: '删除会话' }))
+    expect(setMenuOpen).toHaveBeenCalledWith(false)
+    expect(deleteSession).toHaveBeenCalledWith(ROW.sessionId)
+    expect(callOrder(setMenuOpen)).toBeLessThan(callOrder(deleteSession))
+
+    cleanup()
+    render(<DeleteSessionMenuItem {...menuRow(state)} useBusy={hook(idSet('one'))} deleteSession={vi.fn()} />)
+    expect((screen.getByRole('menuitem', { name: '删除会话' }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('keeps the dialog through a pending delete and a failure, and closes after the row leaves the list', async () => {
+    const list = createSnapshotStore(sessions)
+    const request = createSnapshotStore<SessionDeleteConfirmRequest | null>({
+      sessionId: ROW.sessionId, displayTitle: ROW.displayTitle,
+    })
+    const pending = Promise.withResolvers<undefined>()
+    const deleteSession = vi.fn(() => pending.promise)
+    const settleSessionDelete = vi.fn()
+    render(
+      <SessionDeleteConfirmDialog
+        {...overlay}
+        useSessions={bindSnapshotSelector(list)}
+        useDeleteRequest={bindSnapshotSelector(request)}
+        settleSessionDelete={settleSessionDelete}
+        deleteSession={deleteSession}
+      />,
+    )
+    const dialog = screen.getByRole('dialog', { name: '删除此会话？' })
+    expect(dialog.textContent).toContain('“Session title”')
+    fireEvent.click(screen.getByRole('button', { name: '删除会话' }))
+    expect(screen.getByRole('status').textContent).toBe('正在删除会话…')
+    fireEvent.click(screen.getByRole('button', { name: '取消' }))
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(settleSessionDelete).not.toHaveBeenCalled()
+
+    pending.reject(new Error('disk full'))
+    await waitFor(() => { expect(screen.getByRole('alert').textContent).toBe('disk full') })
+    expect(settleSessionDelete).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: '取消' }))
+    expect(settleSessionDelete).toHaveBeenCalledOnce()
+
+    cleanup()
+    settleSessionDelete.mockClear()
+    const again = Promise.withResolvers<undefined>()
+    render(
+      <SessionDeleteConfirmDialog
+        {...overlay}
+        useSessions={bindSnapshotSelector(list)}
+        useDeleteRequest={bindSnapshotSelector(request)}
+        settleSessionDelete={settleSessionDelete}
+        deleteSession={() => again.promise}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '删除会话' }))
+    await act(async () => { again.resolve(undefined) })
+    expect(settleSessionDelete).not.toHaveBeenCalled()
+    act(() => { list.set({ ...sessions, ids: [], byId: {} }) })
+    await waitFor(() => { expect(settleSessionDelete).toHaveBeenCalledOnce() })
+  })
 })

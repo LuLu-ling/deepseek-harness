@@ -1304,9 +1304,6 @@ importers:
       '@deepseek-ai/dsh-session-reference':
         specifier: workspace:*
         version: link:../../context/session-reference
-      '@lulu-ling/dsh-session-revert':
-        specifier: workspace:*
-        version: link:../../session/session-revert
       '@deepseek-ai/dsh-settings':
         specifier: workspace:*
         version: link:../../settings/settings
@@ -1322,6 +1319,9 @@ importers:
       '@deepseek-ai/dsh-user-questions':
         specifier: workspace:*
         version: link:../../interaction/user-questions
+      '@lulu-ling/dsh-session-revert':
+        specifier: workspace:*
+        version: link:../../session/session-revert
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -1425,9 +1425,6 @@ importers:
       '@deepseek-ai/dsh-session-query':
         specifier: workspace:*
         version: link:../../session-query/session-query
-      '@lulu-ling/dsh-session-revert':
-        specifier: workspace:*
-        version: link:../../session/session-revert
       '@deepseek-ai/dsh-session-title':
         specifier: workspace:*
         version: link:../../session/session-title
@@ -1470,6 +1467,9 @@ importers:
       '@deepseek-ai/dsh-workspace':
         specifier: workspace:*
         version: link:../../workspace/workspace
+      '@lulu-ling/dsh-session-revert':
+        specifier: workspace:*
+        version: link:../../session/session-revert
       '@types/mime-types':
         specifier: ^3.0.1
         version: 3.0.1
@@ -1590,9 +1590,15 @@ importers:
       '@deepseek-ai/cordis':
         specifier: workspace:~
         version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-agent-loop':
+        specifier: workspace:*
+        version: link:../../core/agent-loop
       '@deepseek-ai/dsh-api-gateway':
         specifier: workspace:*
         version: link:../gateway
+      '@deepseek-ai/dsh-api-session-controller':
+        specifier: workspace:*
+        version: link:../session-controller
       '@deepseek-ai/dsh-client-connection':
         specifier: workspace:*
         version: link:../../client/connection
@@ -1608,9 +1614,24 @@ importers:
       '@deepseek-ai/dsh-remote-mock':
         specifier: workspace:*
         version: link:../../test-support/remote-mock
+      '@deepseek-ai/dsh-schedule':
+        specifier: workspace:*
+        version: link:../../schedule/schedule
       '@deepseek-ai/dsh-session':
         specifier: workspace:*
         version: link:../../core/session
+      '@deepseek-ai/dsh-session-persistence':
+        specifier: workspace:*
+        version: link:../../session/session-persistence
+      '@deepseek-ai/dsh-session-projection-cache':
+        specifier: workspace:*
+        version: link:../../session/session-projection-cache
+      '@deepseek-ai/dsh-spill':
+        specifier: workspace:*
+        version: link:../../spill/spill
+      '@deepseek-ai/dsh-spill-local':
+        specifier: workspace:*
+        version: link:../../spill/spill-local
       '@deepseek-ai/dsh-storage-domain':
         specifier: workspace:*
         version: link:../../storage/storage-domain
@@ -2101,9 +2122,6 @@ importers:
       '@deepseek-ai/dsh-session-checkpoint-policy':
         specifier: workspace:*
         version: link:../../session/session-checkpoint-policy
-      '@lulu-ling/dsh-session-file-snapshot':
-        specifier: workspace:*
-        version: link:../../session/session-file-snapshot
       '@deepseek-ai/dsh-session-log-deepseek':
         specifier: workspace:*
         version: link:../../session/session-log-deepseek
@@ -2119,9 +2137,6 @@ importers:
       '@deepseek-ai/dsh-session-query-sqlite':
         specifier: workspace:*
         version: link:../../session-query/session-query-sqlite
-      '@lulu-ling/dsh-session-revert':
-        specifier: workspace:*
-        version: link:../../session/session-revert
       '@deepseek-ai/dsh-session-telemetry-otel':
         specifier: workspace:*
         version: link:../../session/session-telemetry-otel
@@ -2251,6 +2266,12 @@ importers:
       '@deepseek-ai/dsh-workflow-ptc':
         specifier: workspace:*
         version: link:../../workflow/workflow-ptc
+      '@lulu-ling/dsh-session-file-snapshot':
+        specifier: workspace:*
+        version: link:../../session/session-file-snapshot
+      '@lulu-ling/dsh-session-revert':
+        specifier: workspace:*
+        version: link:../../session/session-revert
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:~
@@ -2582,9 +2603,6 @@ importers:
       '@deepseek-ai/dsh-client-ui-settings-session-log':
         specifier: workspace:*
         version: link:../../client/ui-settings-session-log
-      '@lulu-ling/dsh-client-ui-settings-session-snapshot':
-        specifier: workspace:*
-        version: link:../../client/ui-settings-session-snapshot
       '@deepseek-ai/dsh-client-ui-settings-shell':
         specifier: workspace:*
         version: link:../../client/ui-settings-shell
@@ -2810,6 +2828,9 @@ importers:
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
+      '@lulu-ling/dsh-client-ui-settings-session-snapshot':
+        specifier: workspace:*
+        version: link:../../client/ui-settings-session-snapshot
       commander:
         specifier: ^15.0.0
         version: 15.0.0

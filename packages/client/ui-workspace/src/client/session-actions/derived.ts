@@ -24,3 +24,40 @@ export function derive<S, T>(source: HostObservable<S>, project: (snapshot: S) =
     subscribe: listener => source.subscribe(listener),
   }
 }
+
+/**
+ * Project two observables into one. Recomputes when either snapshot changes identity.
+ * @param left - the first observable.
+ * @param right - the second observable.
+ * @param project - pure projection of the two snapshots.
+ * @returns the projected observable.
+ */
+export function derive2<A, B, T>(
+  left: HostObservable<A>,
+  right: HostObservable<B>,
+  project: (left: A, right: B) => T,
+): HostObservable<T> {
+  let seenLeft: A | undefined
+  let seenRight: B | undefined
+  let value: T | undefined
+  return {
+    getSnapshot: () => {
+      const nextLeft = left.getSnapshot()
+      const nextRight = right.getSnapshot()
+      if (value === undefined || nextLeft !== seenLeft || nextRight !== seenRight) {
+        seenLeft = nextLeft
+        seenRight = nextRight
+        value = project(nextLeft, nextRight)
+      }
+      return value
+    },
+    subscribe: (listener) => {
+      const stopLeft = left.subscribe(listener)
+      const stopRight = right.subscribe(listener)
+      return () => {
+        stopLeft()
+        stopRight()
+      }
+    },
+  }
+}

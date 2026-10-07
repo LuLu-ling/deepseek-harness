@@ -1257,6 +1257,18 @@ export class SessionStore extends Service {
   }
 
   /**
+   * Detach one live session. An unknown id resolves without an event.
+   * @param id - session to detach.
+   * @returns whether a live entry was detached.
+   */
+  release(id: SessionId): boolean {
+    const entry = this.store.get(id)
+    if (entry === undefined) return false
+    entry.detach()
+    return true
+  }
+
+  /**
    * All live sessions, in creation order.
    * @returns a fresh array; mutating it does not affect the store.
    */

@@ -49,7 +49,7 @@ export class WorkspaceUnknownSessionError extends Error {
    * @param sessionId - The unknown session id.
    * @param verb - The registry operation that named the session.
    */
-  constructor(readonly sessionId: SessionId, verb: 'archive' | 'pin') {
+  constructor(readonly sessionId: SessionId, verb: 'archive' | 'pin' | 'delete') {
     super(`cannot ${verb} session '${sessionId}': live sessions and session persistence hold no such session`)
     this.name = 'WorkspaceUnknownSessionError'
   }
@@ -64,9 +64,10 @@ export class WorkspaceActiveSessionError extends Error {
   /**
    * @param sessionId - The active session id.
    * @param activity - The reported activity, in listener order.
+   * @param verb - The refused operation named in the message. Defaults to archive.
    */
-  constructor(readonly sessionId: SessionId, readonly activity: readonly SessionActivity[]) {
-    super(`cannot archive session '${sessionId}': the session is active (${activity.map(entry => entry.kind).join(', ')})`)
+  constructor(readonly sessionId: SessionId, readonly activity: readonly SessionActivity[], verb: 'archive' | 'delete' = 'archive') {
+    super(`cannot ${verb} session '${sessionId}': the session is active (${activity.map(entry => entry.kind).join(', ')})`)
     this.name = 'WorkspaceActiveSessionError'
   }
 }
@@ -460,6 +461,40 @@ export class WorkspaceRegistry extends Service {
         ...state,
         pinnedSessionIds: state.pinnedSessionIds.filter(id => id !== sessionId),
       })
+    })
+  }
+
+  /**
+   * Drop one idle session from the archive set, the pin set, and every account.
+   * Activity rejects before any write. A failed account write restores the global set.
+   * Does not delete the session log.
+   * @param sessionId - The session to drop from the registry.
+   * @returns resolution after the registry writes.
+   */
+  deleteSession(sessionId: SessionId): Promise<void> {
+    return this.enqueueOperation(async () => {
+      if (!(await this.sessionKnown(sessionId))) {
+        throw new WorkspaceUnknownSessionError(sessionId, 'delete')
+      }
+      const activity = await this.ctx.waterfall(
+        'workspace/session-activity', { sessionId }, () => Promise.resolve([]),
+      )
+      if (activity.length > 0) throw new WorkspaceActiveSessionError(sessionId, activity, 'delete')
+      const state = this.requireState()
+      const next = {
+        ...state,
+        archivedSessionIds: state.archivedSessionIds.filter(id => id !== sessionId),
+        pinnedSessionIds: state.pinnedSessionIds.filter(id => id !== sessionId),
+      }
+      const globalChanged = next.archivedSessionIds.length !== state.archivedSessionIds.length
+        || next.pinnedSessionIds.length !== state.pinnedSessionIds.length
+      if (globalChanged) await this.setState(next)
+      try {
+        for (const workspace of this.list()) await workspace.detachSession(sessionId)
+      } catch (error) {
+        if (globalChanged) await this.setState(state)
+        throw error
+      }
     })
   }
 

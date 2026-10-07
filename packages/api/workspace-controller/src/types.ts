@@ -44,6 +44,8 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
       readonly sessionId: SessionId
       readonly activity: readonly SessionActivity[]
     }
+    /** Cleanup failed after deletion started. Repeating the delete finishes what remains. */
+    'workspace/delete-failed': { readonly sessionId: SessionId }
     /** The Session or its anchor is not in the Workspace's manual order. */
     'workspace/move-invalid': {
       readonly workspaceId: WorkspaceId
@@ -146,6 +148,17 @@ export interface WorkspaceUnpinSessionRequest {
 
 /** Complete pinned Session set after a mutation, most recently pinned first. */
 export interface WorkspacePinValue {
+  readonly pinnedSessionIds: readonly SessionId[]
+}
+
+/** Session to delete. */
+export interface WorkspaceDeleteSessionRequest {
+  readonly sessionId: SessionId
+}
+
+/** Archive and pin sets after the deleted id is dropped. */
+export interface WorkspaceDeleteSessionValue {
+  readonly archivedSessionIds: readonly SessionId[]
   readonly pinnedSessionIds: readonly SessionId[]
 }
 

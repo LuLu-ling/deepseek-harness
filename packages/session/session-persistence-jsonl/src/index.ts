@@ -15,14 +15,14 @@ import {
 } from '@deepseek-ai/dsh-session-format-catalog'
 import { readdirSync, type Dirent } from 'node:fs'
 import { open, mkdir, readdir, realpath, link, rm, stat, truncate } from 'node:fs/promises'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, join, relative, resolve } from 'node:path'
 import { performance } from 'node:perf_hooks'
 import { scheduler } from 'node:timers/promises'
 import { createHash, randomBytes } from 'node:crypto'
 import {
   SessionPersistence, SessionPersistenceRevision, SessionFormatUnsupportedError,
   SessionPersistenceCorruptionError,
-  SessionAlreadyExistsError, SessionPersistenceNotFoundError,
+  SessionAlreadyExistsError, SessionAlreadyOwnedError, SessionPersistenceNotFoundError,
   assertStoredId, materializeCreateHeader, sessionFormatVersionRefusal, validateStoredEvents,
   type SessionAccess, type SessionHandle,
   type SessionHandleReadResult,
@@ -506,6 +506,33 @@ class JsonlSessionPersistence extends SessionPersistence {
     }
     signal?.throwIfAborted()
     return snapshots
+  }
+
+  /**
+   * Delete one session directory located from the stored header.
+   * Unknown ids and a live write handle reject.
+   * @param id - stored session to delete.
+   * @returns resolution after the directory is gone and the lease is released.
+   * @throws {SessionPersistenceNotFoundError} when the id is unknown.
+   * @throws {SessionAlreadyOwnedError} when a writer still owns the session.
+   */
+  async delete(id: SessionId): Promise<void> {
+    const snapshot = await this.stat(id)
+    if (snapshot === undefined) throw new SessionPersistenceNotFoundError(id)
+    if (this.tracker.hasPending(id)) throw new SessionAlreadyOwnedError(id)
+    const dir = sessionDir(this.root, snapshot.header.cwd, id)
+    const root = resolve(this.root)
+    const target = resolve(dir)
+    const relativePath = relative(root, target)
+    if (relativePath === '' || relativePath === '..' || relativePath.startsWith('../') || relativePath.startsWith('..\\')) {
+      throw new Error(`session "${id}" delete path escaped the persistence root`)
+    }
+    const lease = await this.acquireLease(id, snapshot.header.cwd)
+    try {
+      await rm(target, { recursive: true, force: false })
+    } finally {
+      await lease.release()
+    }
   }
 
   // --- handle-facing storage internals (package-private via the handle class below) ---

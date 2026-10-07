@@ -180,6 +180,8 @@ class FakeWorkspaces implements IWorkspaces {
   readonly list: MutableSource<WorkspaceSnapshot>
   readonly archiveCalls: SessionId[] = []
   readonly unarchiveCalls: SessionId[] = []
+  readonly deleteCalls: SessionId[] = []
+  onDelete: IWorkspaces['deleteSession'] = async () => undefined
   onArchive: IWorkspaces['archiveSession'] = async (sessionId) => {
     this.list.update(state => ({
       ...state,
@@ -220,6 +222,11 @@ class FakeWorkspaces implements IWorkspaces {
   unarchiveSession(sessionId: SessionId): Promise<void> {
     this.unarchiveCalls.push(sessionId)
     return this.onUnarchive(sessionId)
+  }
+
+  deleteSession(sessionId: SessionId): Promise<void> {
+    this.deleteCalls.push(sessionId)
+    return this.onDelete(sessionId)
   }
 
   pinSession(sessionId: SessionId): Promise<void> {
@@ -1263,6 +1270,22 @@ describe('UiWorkspaceService', () => {
 
     expect(b.sessions.retained[0]!.release).toHaveBeenCalledOnce()
     expect(b.selectPanel).toHaveBeenCalledTimes(2)
+  })
+
+  it('clears a selected Session after deleting it and preserves a failed delete', async () => {
+    const current = sid('current')
+    const b = bench()
+    b.uiWorkspace.openSession(current)
+
+    await b.uiWorkspace.deleteSession(current)
+
+    expect(b.workspaces.deleteCalls).toEqual([current])
+    expect(b.sessions.retained[0]!.release).toHaveBeenCalledOnce()
+    expect(b.selectPanel).toHaveBeenCalledTimes(2)
+
+    b.workspaces.onDelete = () => Promise.reject(new Error('delete rejected'))
+    await expect(b.uiWorkspace.deleteSession(current)).rejects.toThrow('delete rejected')
+    expect(b.workspaces.deleteCalls).toEqual([current, current])
   })
 
   it('forwards archive commands and preserves failures', async () => {

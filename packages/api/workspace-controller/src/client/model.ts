@@ -10,6 +10,8 @@ import type {
   WorkspaceBaseline,
   WorkspaceCreateRequest,
   WorkspaceCreateValue,
+  WorkspaceDeleteSessionRequest,
+  WorkspaceDeleteSessionValue,
   WorkspaceDeleteValue,
   WorkspaceInsertSessionBeforeRequest,
   WorkspaceOrderValue,
@@ -252,6 +254,26 @@ export class ClientWorkspaceModel implements WorkspaceFollowSink {
     const requestSeq = ++this.pinRequestSeq
     const result = await this.remote.unpinSession({ sessionId })
     if (result.ok && requestSeq === this.pinRequestSeq) {
+      this.installPinned(result.value.pinnedSessionIds)
+    }
+    return result
+  }
+
+  /**
+   * Delete one Session. A superseded reply installs only the set this request still owns.
+   * @param sessionId - Session to delete.
+   * @returns generated Remote result.
+   */
+  async deleteSession(
+    sessionId: WorkspaceDeleteSessionRequest['sessionId'],
+  ): Promise<RemoteResult<WorkspaceDeleteSessionValue>> {
+    const archiveSeq = ++this.archiveRequestSeq
+    const pinSeq = ++this.pinRequestSeq
+    const result = await this.remote.deleteSession({ sessionId })
+    if (result.ok && archiveSeq === this.archiveRequestSeq) {
+      this.installArchived(result.value.archivedSessionIds)
+    }
+    if (result.ok && pinSeq === this.pinRequestSeq) {
       this.installPinned(result.value.pinnedSessionIds)
     }
     return result

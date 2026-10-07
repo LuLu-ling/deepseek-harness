@@ -1,6 +1,15 @@
 /** Workspace command implementation and stable Remote failure mapping. */
 
+import { rm } from 'node:fs/promises'
 import type { Context } from '@deepseek-ai/cordis'
+import type {} from '@deepseek-ai/dsh-agent-loop'
+import type {} from '@deepseek-ai/dsh-api-session-controller'
+import type {} from '@deepseek-ai/dsh-schedule'
+import { SessionPersistenceNotFoundError } from '@deepseek-ai/dsh-session-persistence'
+import type {} from '@deepseek-ai/dsh-session-projection-cache'
+import type {} from '@deepseek-ai/dsh-spill'
+import { sessionDir as spillSessionDir } from '@deepseek-ai/dsh-spill-local'
+import type { SessionId } from '@deepseek-ai/dsh-session'
 import type { Workspace } from '@deepseek-ai/dsh-workspace'
 import {
   WorkspaceActiveSessionError,
@@ -18,6 +27,8 @@ import type {
   WorkspaceCreateRequest,
   WorkspaceCreateValue,
   WorkspaceDeleteRequest,
+  WorkspaceDeleteSessionRequest,
+  WorkspaceDeleteSessionValue,
   WorkspaceDeleteValue,
   WorkspaceInsertBeforeRequest,
   WorkspaceInsertSessionBeforeRequest,
@@ -226,6 +237,46 @@ export class WorkspaceCommands {
     return { pinnedSessionIds: [...this.ctx.workspaceRegistry.pinnedSessionIds] }
   }
 
+  /**
+   * Delete one idle Session's registry row and durable artifacts.
+   * Cleanup that fails after the registry write is `workspace/delete-failed`.
+   * @param request - Session identity to delete.
+   * @returns the archive and pin sets after the id is removed.
+   */
+  async deleteSession(request: WorkspaceDeleteSessionRequest): Promise<WorkspaceDeleteSessionValue> {
+    try {
+      await this.ctx.workspaceRegistry.deleteSession(request.sessionId)
+    } catch (error) {
+      if (error instanceof WorkspaceUnknownSessionError) {
+        throw new RemoteError('session/not-found', error.message, { sessionId: request.sessionId }, { cause: error })
+      }
+      if (error instanceof WorkspaceActiveSessionError) {
+        throw new RemoteError(
+          'workspace/session-active',
+          error.message,
+          { sessionId: request.sessionId, activity: error.activity },
+          { cause: error },
+        )
+      }
+      throw error
+    }
+    try {
+      await deleteSessionArtifacts(this.ctx, request.sessionId)
+    } catch (error) {
+      if (remoteErrorOf(error) !== undefined) throw error
+      throw new RemoteError(
+        'workspace/delete-failed',
+        `cannot delete session "${request.sessionId}": ${errorMessage(error)}`,
+        { sessionId: request.sessionId },
+        { cause: error },
+      )
+    }
+    return {
+      archivedSessionIds: [...this.ctx.workspaceRegistry.archivedSessionIds],
+      pinnedSessionIds: [...this.ctx.workspaceRegistry.pinnedSessionIds],
+    }
+  }
+
   private requireWorkspace(workspaceId: WorkspaceId): Workspace {
     const workspace = this.ctx.workspaceRegistry.get(WorkspaceId(workspaceId))
     if (workspace === undefined) throw workspaceNotFound(workspaceId)
@@ -245,6 +296,56 @@ function workspaceNotFound(workspaceId: WorkspaceId): RemoteError<'workspace/not
     `Workspace "${workspaceId}" not found`,
     { workspaceId },
   )
+}
+
+/** Stop reminders, dispose a live session, then delete cache, spill, and the log. */
+async function deleteSessionArtifacts(ctx: Context, sessionId: SessionId): Promise<void> {
+  const schedule = ctx.get('schedule')
+  if (schedule !== undefined) {
+    const rows = (await schedule.catalog()).filter(row => row.sessionId === sessionId)
+    for (const row of rows) {
+      if (row.status === 'active') await schedule.delete({ id: row.id, sessionId })
+    }
+    for (const row of rows) {
+      if (row.status !== 'active') await schedule.delete({ id: row.id, sessionId })
+    }
+  }
+
+  const sessions = ctx.get('sessions')
+  if (sessions !== undefined && sessions.get(sessionId) !== undefined) {
+    const loop = ctx.get('agentLoop')
+    if (loop !== undefined && ctx.get('agents')?.get(sessionId) !== undefined) {
+      await loop.release(sessionId)
+    }
+    if (sessions.get(sessionId) !== undefined) sessions.release(sessionId)
+  } else {
+    ctx.emit('api-session/removed', sessionId)
+  }
+  const cache = ctx.get('sessionProjectionCache')
+  if (cache !== undefined) await cache.delete(sessionId)
+  await deleteSpillDirectory(ctx, sessionId)
+  const persistence = ctx.get('sessionPersistence')
+  if (persistence === undefined) throw new Error('session persistence is not mounted')
+  try {
+    await persistence.delete(sessionId)
+  } catch (error) {
+    if (!(error instanceof SessionPersistenceNotFoundError)) throw error
+  }
+}
+
+/** Remove the local spill directory, or warn when this host has no filesystem spill root. */
+async function deleteSpillDirectory(ctx: Context, sessionId: SessionId): Promise<void> {
+  const spill = ctx.get('spillStore')
+  if (spill === undefined) {
+    ctx.logger.warn(`workspace: skipped spill cleanup for session "${sessionId}" because spillStore is not mounted`)
+    return
+  }
+  const root = 'root' in spill && typeof spill.root === 'string' ? spill.root : undefined
+  if (root === undefined) {
+    ctx.logger.warn(`workspace: skipped spill cleanup for session "${sessionId}" because spillStore exposes no filesystem root`)
+    return
+  }
+  await rm(spillSessionDir(root, sessionId), { recursive: true, force: true })
 }
 
 function errorMessage(error: unknown): string {
