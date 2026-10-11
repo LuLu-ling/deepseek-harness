@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This package captures the session working tree into a git directory under the data directory, separate from the user's repository. The first pre-step of a turn records that tree. Staging a revert rewrites only the paths that differ between the tree captured at the first stage and the tree of the turn that contains the boundary. Clearing the stage writes those paths back. A directory that is not a git checkout, and `snapshots: false`, both capture nothing.
+This package captures the session working tree into a git directory under the data directory, separate from the user's repository. The first pre-step of a turn records that tree and stores the session-turn binding beside it. Staging a revert rewrites only the paths that differ between the tree captured at the first stage and the tree of the turn that contains the boundary. Clearing the stage writes those paths back. A later process reads that binding, so a restart can still roll files back. A tree the retention limits already deleted still cannot be restored. A directory that is not a git checkout, and `snapshots: false`, both capture nothing.
 
 ## Table of Contents
 

@@ -14,7 +14,7 @@ Undo has to take a user message, and everything after it, out of the next model 
 
 ## Consequences
 
-A build that does not know the three event types opens the log and shows the hidden messages, including to the model. This build still hides them. A log from before the first undo still opens. Rows written without `ignorable: true` still make an older build refuse the log. Reloading a session restores the message boundary from the log. It restores files only when the snapshot directory from that same machine is still present. Capture is once per turn, at the first pre-step, not once per step.
+A build that does not know the three event types opens the log and shows the hidden messages, including to the model. This build still hides them. A log from before the first undo still opens. Rows written without `ignorable: true` still make an older build refuse the log. Reloading a session restores the message boundary from the log. File restore reads the turn binding stored in the snapshot directory on that machine, including after a restart. A tree the retention limits deleted is still gone. Capture is once per turn, at the first pre-step, not once per step.
 
 ## Alternatives considered
 

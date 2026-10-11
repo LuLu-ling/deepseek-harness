@@ -12,6 +12,7 @@ import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SessionRevertService from '@lulu-ling/dsh-session-revert'
 import SessionSnapshotService, { DEFAULT_DISK_LIMIT_BYTES, DEFAULT_GC_INTERVAL_MS, DEFAULT_HISTORY_LIMIT, DEFAULT_MAX_AGE_MS, MAX_UNTRACKED_BYTES } from '@lulu-ling/dsh-session-file-snapshot'
+import { recordTurnBinding } from '@lulu-ling/dsh-session-file-snapshot/src/git.ts'
 
 const dirs: string[] = []
 
@@ -221,6 +222,33 @@ describe('session snapshots', () => {
     expect(readFileSync(join(repo, 'a.txt'), 'utf8')).toBe('B\n')
     await ctx.sessionRevert.clear(agent)
     expect(readFileSync(join(repo, 'a.txt'), 'utf8')).toBe('C\n')
+  })
+
+  it('restores a turn from the snapshot directory after the process map is gone', async () => {
+    const repo = temp('dsh-snap-restart-')
+    const data = temp('dsh-snap-data-')
+    gitInit(repo)
+    writeFileSync(join(repo, 'a.txt'), 'A\n')
+    const first = await mounted(repo, data)
+    const turn1 = await first.snapshots.capture(repo)
+    writeFileSync(join(repo, 'a.txt'), 'B\n')
+    const turn2 = await first.snapshots.capture(repo)
+    writeFileSync(join(repo, 'a.txt'), 'C\n')
+    await recordTurnBinding(repo, data, first.agent.session.id, 1, turn1!)
+    await recordTurnBinding(repo, data, first.agent.session.id, 2, turn2!)
+
+    const second = await mounted(repo, data)
+    const session = second.agent.session
+    session.append('turn/start', { turn: 1 })
+    session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: 'one' }], source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+    session.append('turn/start', { turn: 2 })
+    const boundary = session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: 'two' }], source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+    await second.ctx.sessionRevert.stage(second.agent, boundary.seq)
+    expect(readFileSync(join(repo, 'a.txt'), 'utf8')).toBe('B\n')
   })
 
   it('leaves a path untouched when both trees contain the same bytes', async () => {

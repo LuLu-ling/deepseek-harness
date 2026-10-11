@@ -193,8 +193,7 @@ async function toplevel(directory: string): Promise<string | undefined> {
 }
 
 async function ensureGitDir(worktree: string, dataDir: string): Promise<NodeJS.ProcessEnv> {
-  const hash = createHash('sha256').update(worktree).digest('hex').slice(0, 20)
-  const gitDir = join(dataDir, hash)
+  const gitDir = snapshotGitDir(worktree, dataDir)
   await mkdir(gitDir, { recursive: true })
   await writeFile(join(gitDir, 'dsh-worktree'), worktree)
   const env = { ...userEnv(), GIT_DIR: gitDir, GIT_WORK_TREE: worktree }
@@ -206,6 +205,107 @@ async function ensureGitDir(worktree: string, dataDir: string): Promise<NodeJS.P
     await git(worktree, ['config', 'core.autocrlf', 'false'], env)
   }
   return env
+}
+
+/**
+ * Directory that holds one worktree's snapshot objects.
+ * The hash is the lookup key shared by capture and by a later process.
+ * @param worktree - repository toplevel.
+ * @param dataDir - parent of the isolated git directories.
+ * @returns the git directory path.
+ */
+function snapshotGitDir(worktree: string, dataDir: string): string {
+  const hash = createHash('sha256').update(worktree).digest('hex').slice(0, 20)
+  return join(dataDir, hash)
+}
+
+const TURNS_NAME = 'dsh-turns.json'
+
+/**
+ * Store which snapshot belongs to one session turn.
+ * The binding lives in the snapshot git directory, so a later process can restore files.
+ * @param directory - any path inside the project.
+ * @param dataDir - parent of the isolated git directories.
+ * @param sessionId - session that opened the turn.
+ * @param turn - turn number from `turn/start`.
+ * @param id - tree captured for that turn.
+ */
+export async function recordTurnBinding(
+  directory: string,
+  dataDir: string,
+  sessionId: string,
+  turn: number,
+  id: SnapshotId,
+): Promise<void> {
+  if (!Number.isSafeInteger(turn) || turn < 0) throw new Error('turn must be a non-negative safe integer')
+  const worktree = await toplevel(directory)
+  if (worktree === undefined) return
+  await lock(worktree, async () => {
+    const env = await ensureGitDir(worktree, dataDir)
+    const gitDir = env['GIT_DIR']
+    if (gitDir === undefined) return
+    await lock(gitDir, async () => {
+      const turns = await readTurnFile(gitDir)
+      turns.set(`${sessionId}:${turn}`, id)
+      await writeTurnFile(gitDir, turns)
+    })
+  })
+}
+
+/**
+ * Read the snapshot stored for one session turn.
+ * @param directory - any path inside the project.
+ * @param dataDir - parent of the isolated git directories.
+ * @param sessionId - session that opened the turn.
+ * @param turn - turn number from `turn/start`.
+ * @returns the tree id, or undefined when the binding or the snapshot directory is absent.
+ */
+export async function readTurnBinding(
+  directory: string,
+  dataDir: string,
+  sessionId: string,
+  turn: number,
+): Promise<SnapshotId | undefined> {
+  const worktree = await toplevel(directory)
+  if (worktree === undefined) return undefined
+  const gitDir = snapshotGitDir(worktree, dataDir)
+  try {
+    await stat(join(gitDir, 'HEAD'))
+  } catch (error: unknown) {
+    if (isMissing(error)) return undefined
+    throw error
+  }
+  return lock(worktree, () => lock(gitDir, async () => (await readTurnFile(gitDir)).get(`${sessionId}:${turn}`)))
+}
+
+async function readTurnFile(gitDir: string): Promise<Map<string, SnapshotId>> {
+  try {
+    return parseTurnFile(await readFile(join(gitDir, TURNS_NAME), 'utf8'))
+  } catch (error: unknown) {
+    if (isMissing(error)) return new Map()
+    throw error
+  }
+}
+
+function parseTurnFile(text: string): Map<string, SnapshotId> {
+  const parsed: unknown = JSON.parse(text)
+  const turns = new Map<string, SnapshotId>()
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return turns
+  for (const [key, value] of Object.entries(parsed)) {
+    if (typeof value !== 'string' || !/^[0-9a-f]{40}$/.test(value)) continue
+    const split = key.lastIndexOf(':')
+    const turn = split < 0 ? Number.NaN : Number(key.slice(split + 1))
+    if (!Number.isSafeInteger(turn) || turn < 0) continue
+    turns.set(key, asSnapshot(value))
+  }
+  return turns
+}
+
+async function writeTurnFile(gitDir: string, turns: ReadonlyMap<string, SnapshotId>): Promise<void> {
+  const path = join(gitDir, TURNS_NAME)
+  const temporary = `${path}.${process.pid}.tmp`
+  await writeFile(temporary, JSON.stringify(Object.fromEntries(turns)))
+  await rename(temporary, path)
 }
 
 async function stage(worktree: string, env: NodeJS.ProcessEnv, maxUntrackedBytes: number | undefined): Promise<void> {

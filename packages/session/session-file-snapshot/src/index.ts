@@ -18,6 +18,8 @@ import {
   collectSnapshots,
   diffTrees,
   recordSnapshot,
+  recordTurnBinding,
+  readTurnBinding,
   restoreChanged,
   restoreTree,
   snapshotRoot,
@@ -246,6 +248,7 @@ export class SessionSnapshotService extends Service {
     const snapshot = await this.capture(cwd)
     if (snapshot === undefined) return
     this.rememberTurn(agent.session.id, turn, snapshot)
+    await recordTurnBinding(cwd, this.dataDir, agent.session.id, turn, snapshot)
   }
 
   private async onStage(
@@ -256,7 +259,7 @@ export class SessionSnapshotService extends Service {
     const cwd = agent.session.header.cwd
     if (cwd === undefined) return
     const id = agent.session.id
-    const target = this.turnSnapshot(agent, atSeq)
+    const target = await this.turnSnapshot(agent, atSeq)
     const previous = this.staged.get(id)
     const release = this.hold([previous, target])
     try {
@@ -299,10 +302,17 @@ export class SessionSnapshotService extends Service {
   }
 
   /** Tree captured for the turn that contains `atSeq`, when one was recorded. */
-  private turnSnapshot(agent: Agent, atSeq: number): SnapshotId | undefined {
+  private async turnSnapshot(agent: Agent, atSeq: number): Promise<SnapshotId | undefined> {
     const turn = turnOf(agent, atSeq)
     if (turn === undefined) return undefined
-    return this.turns.get(`${agent.session.id}:${turn}`)
+    const key = `${agent.session.id}:${turn}`
+    const cached = this.turns.get(key)
+    if (cached !== undefined) return cached
+    const cwd = agent.session.header.cwd
+    if (cwd === undefined) return undefined
+    const stored = await readTurnBinding(cwd, this.dataDir, agent.session.id, turn)
+    if (stored !== undefined) this.turns.set(key, stored)
+    return stored
   }
 
   /** Rewrite only the paths that differ between two captured trees. */
