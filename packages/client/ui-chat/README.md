@@ -177,7 +177,7 @@ None; Chat presentation does not assemble or mutate provider requests.
 <a id="revert"></a>
 ## Revert
 
-`/undo` hides the last visible user message and everything after it. `/redo` reveals the next hidden user message, or clears the staged boundary when none remains. Primary+Alt+U and Primary+Alt+R do the same from the page or the composer. A staged boundary shows a restore row under the transcript and a collapsible list above the composer. Copy on a user message sits beside an undo icon for that message. File rollback, when the working directory is a git checkout, is performed by [session file snapshots](../../session/session-file-snapshot/README.md).
+`/undo` hides the last visible user message and everything after it, and places that message's text and images in the composer. An image-only message keeps the current text. `/redo` reveals the next hidden user message, or clears the staged boundary when none remains, and clears the composer text and images. Restoring one hidden message or every hidden message from the list does the same. The list shows Restore all only when more than one message is hidden. Primary+Alt+U and Primary+Alt+R do the same from the page or the composer. A staged boundary shows a restore row under the transcript and a collapsible list above the composer. The undo icon beside Copy on a user message does the same for that message. File rollback, when the working directory is a git checkout, is performed by [session file snapshots](../../session/session-file-snapshot/README.md). Files attached to the undone message are not placed back in the composer.
 
 
 ## Known Limitations and Deferred Work

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render } from '@testing-library/react'
+import { cleanup, fireEvent, render } from '@testing-library/react'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
 import { describe, expect, it, vi } from 'vitest'
@@ -36,5 +36,21 @@ describe('RevertDock', () => {
     expect(restore).toHaveBeenCalledWith(2)
     fireEvent.click(view.getByRole('button', { name: '全部恢复' }))
     expect(clear).toHaveBeenCalledOnce()
+  })
+
+  it('omits restore all when only one message is hidden', () => {
+    cleanup()
+    const view = render(
+      <RevertDock
+        useSession={selector => selector({ revert: staged } as SessionSnapshot)}
+        hiddenMessages={() => [{ seq: 2, text: 'only' }]}
+        restore={vi.fn()}
+        clear={vi.fn()}
+        t={t}
+      />,
+    )
+    fireEvent.click(view.getByRole('button', { name: '已撤回 1 条消息 only' }))
+    expect(view.getByRole('button', { name: '恢复这条消息' })).toBeTruthy()
+    expect(view.queryByRole('button', { name: '全部恢复' })).toBeNull()
   })
 })

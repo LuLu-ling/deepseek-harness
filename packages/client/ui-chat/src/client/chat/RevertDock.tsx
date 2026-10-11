@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import { SessionSeq } from '@deepseek-ai/dsh-session/types'
 import type { SessionSnapshot } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { Context } from '@deepseek-ai/cordis'
 import { IconChevronDownOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
-import { hiddenUserMessages } from '../revert-commands.ts'
+import { hiddenUserMessages, stagedRevertActions } from '../revert-commands.ts'
 import { NS, type ChatKey } from '../locale.ts'
 import css from './RevertDock.module.css'
 
@@ -52,9 +51,11 @@ export function RevertDock({ useSession, hiddenMessages, restore, clear, t }: Re
                 <button type="button" className={css.restore} onClick={() => { restore(item.seq) }}>{t('revert.dock.restore')}</button>
               </li>
             ))}
-            <li className={css.row}>
-              <button type="button" className={css.restore} onClick={clear}>{t('revert.restore')}</button>
-            </li>
+            {items.length > 1 && (
+              <li className={css.row}>
+                <button type="button" className={css.restore} onClick={clear}>{t('revert.restore')}</button>
+              </li>
+            )}
           </ul>
         )}
       </div>
@@ -74,15 +75,11 @@ export function registerRevertDock(ctx: Context): void {
     locale: NS,
     inject: (sessionId: SessionId): RevertDockInjected => {
       const session = ctx.sessions.binding(sessionId)?.session
+      const actions = stagedRevertActions(ctx, session)
       return {
         hiddenMessages: () => session === undefined ? [] : hiddenUserMessages(session),
-        restore: (seq) => {
-          if (session === undefined) return
-          const later = hiddenUserMessages(session).find(item => item.seq > seq)
-          if (later === undefined) void session.revertClear()
-          else void session.revertStage(SessionSeq(later.seq))
-        },
-        clear: () => { if (session !== undefined) void session.revertClear() },
+        restore: actions.restore,
+        clear: actions.clear,
       }
     },
   }, RevertDock))

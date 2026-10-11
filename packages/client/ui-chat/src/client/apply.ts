@@ -33,7 +33,7 @@ import { ChatFlow } from './chat/ChatFlow.tsx'
 import { registerChatNodeRenderers } from './chat/register-node-renderers.ts'
 import { ActivityPill, UsagePill } from './chat/StatsPills.tsx'
 import { registerConversationNodes } from './conversation-nodes/register.ts'
-import { registerRevertCommands } from './revert-commands.ts'
+import { registerRevertCommands, stageUndo } from './revert-commands.ts'
 import { registerRevertDock } from './chat/RevertDock.tsx'
 import { QuotaNoticeHost } from './chat/QuotaNoticeHost.tsx'
 import { en, NS, zh } from './locale.ts'
@@ -297,7 +297,7 @@ export function apply(ctx: Context): void {
               })
           },
           revertAt: (seq) => {
-            void session.revertStage(SessionSeq(seq))
+            stageUndo(ctx, session, SessionSeq(seq))
           },
           clearRevert: () => { void session.revertClear() },
         }
