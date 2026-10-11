@@ -129,6 +129,9 @@ export class ChatReading {
 
   /**
    * Handle pinned layout movement and reader arrivals at the floor immediately.
+   * A non-reader delivery that already sits inside the follow threshold resumes
+   * following without moving the offset, so a shrink that reveals the floor
+   * removes the back-to-bottom control instead of leaving it in normal flow.
    * @param scroll - attributed scroll delivery; other reader movement remains pending until sampled.
    */
   readonly onScroll = (scroll: ViewportScroll): void => {
@@ -138,6 +141,10 @@ export class ChatReading {
       || (scroll.movedByReader && Math.abs(scroll.metrics.top - scroll.metrics.floor) < 1)) {
       this.followTail()
       this.sampled?.({ position: null, movedByReader: scroll.movedByReader, followingTail: true })
+      return
+    }
+    if (!scroll.movedByReader && this.follow.nearBottom(scroll.metrics)) {
+      this.resumeVisibleTail(scroll)
       return
     }
     this.sampleTimer ??= window.setTimeout(this.flushSample, SCROLL_SAMPLE_INTERVAL_MS)
@@ -164,11 +171,23 @@ export class ChatReading {
     this.flushSample()
   }
 
-  /** Reconcile a layout change without overriding unsampled reader input. */
+  /**
+   * Reconcile a layout change without overriding unsampled reader input.
+   * When the reader is already inside the follow threshold, resume following
+   * without changing the offset.
+   */
   onResize(): void {
     if (this.pending) return
-    if (this.state.followingTail) this.followTail()
-    else this.refreshActiveTurn()
+    if (this.state.followingTail) {
+      this.followTail()
+      return
+    }
+    const scroll = this.viewport.readScroll()
+    if (scroll !== null && this.follow.nearBottom(scroll.metrics)) {
+      this.resumeVisibleTail(scroll)
+      return
+    }
+    this.refreshActiveTurn()
   }
 
   /** Resolve the active turn from tail ownership or a coalesced reading-line probe. */
@@ -181,6 +200,19 @@ export class ChatReading {
     if (this.probeFrame !== null) return
     if (typeof requestAnimationFrame !== 'function') this.probe()
     else this.probeFrame = requestAnimationFrame(this.probe)
+  }
+
+  /**
+   * The floor is already in view. Clear the away position and drop the
+   * back-to-bottom control without scrolling.
+   * @param scroll - current geometry that is already inside the follow threshold.
+   */
+  private resumeVisibleTail(scroll: ViewportScroll): void {
+    this.cancelPending()
+    this.viewport.acknowledge(scroll.metrics)
+    this.store.save(null)
+    this.publish({ initialized: true, followingTail: true, activeTurn: this.viewport.latestTurn })
+    this.sampled?.({ position: null, movedByReader: scroll.movedByReader, followingTail: true })
   }
 
   private commit(

@@ -3733,6 +3733,54 @@ describe('ChatView', () => {
     expect(scroller.scrollTop).toBe(900)
   })
 
+  it('hides the back-to-bottom button when a shrink clamp leaves the reader on the floor', () => {
+    const h = makeHarness({ nodes: [user(1, 'q'), assistant(2, 'a')] })
+    const view = render(<h.ChatView {...h.props} />)
+    const scroller = view.container.querySelector('[data-chat-flow]')!.parentElement as HTMLDivElement
+    const metrics = installScrollMetrics(scroller, 2_000, 300)
+    readerScroll(scroller, 100)
+    expect(view.getByLabelText('回到底部')).toBeTruthy()
+
+    // The browser clamps the away offset onto the new floor and delivers a
+    // non-reader scroll. The button must unmount without a further jump.
+    metrics.setLayout(250, 100)
+    fireEvent.scroll(scroller)
+    expect(scroller.scrollTop).toBe(0)
+    expect(view.queryByLabelText('回到底部')).toBeNull()
+    expect(view.container.querySelector('[data-chat-following-tail]')).not.toBeNull()
+    expect(h.chatScroll.read()).toBeNull()
+  })
+
+  it('hides the back-to-bottom button when a shrink fits the transcript without a scroll event', () => {
+    let notify: (() => void) | undefined
+    class ResizeObserverStub {
+      constructor(callback: ResizeObserverCallback) {
+        notify = () => { callback([], this as unknown as ResizeObserver) }
+      }
+
+      observe = vi.fn()
+      disconnect = vi.fn()
+    }
+    vi.stubGlobal('ResizeObserver', ResizeObserverStub)
+    const h = makeHarness({ nodes: [user(1, 'q'), assistant(2, 'a')] })
+    const view = render(<h.ChatView {...h.props} />)
+    const scroller = view.container.querySelector('[data-chat-flow]')!.parentElement as HTMLDivElement
+    const metrics = installScrollMetrics(scroller, 2_000, 300)
+    readerScroll(scroller, 100)
+    expect(view.getByLabelText('回到底部')).toBeTruthy()
+
+    metrics.setHeight(1_500)
+    act(() => { notify?.() })
+    expect(scroller.scrollTop).toBe(100)
+    expect(view.getByLabelText('回到底部')).toBeTruthy()
+
+    metrics.setLayout(250, 100)
+    act(() => { notify?.() })
+    expect(scroller.scrollTop).toBe(0)
+    expect(view.queryByLabelText('回到底部')).toBeNull()
+    expect(view.container.querySelector('[data-chat-following-tail]')).not.toBeNull()
+  })
+
   it('keeps following when a shrink clamp regrows before scrollend', () => {
     const h = makeHarness({ nodes: [user(1, 'q'), assistant(2, 'a')] })
     const view = render(<h.ChatView {...h.props} />)
