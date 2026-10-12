@@ -119,6 +119,7 @@ function compactSummary(match: ConversationMatch | undefined, checkpoint: Conver
       ? data.shadowedTokenCount
       : null
   }
+  const images = checkpointImages(checkpoint)
   return {
     kind: 'compaction',
     seq: checkpoint.event.seq,
@@ -127,7 +128,17 @@ function compactSummary(match: ConversationMatch | undefined, checkpoint: Conver
     summaryEventSeq: match?.event.seq ?? null,
     shadowedItemCount,
     shadowedTokenCount,
+    ...images === undefined ? {} : { images },
   }
+}
+
+function checkpointImages(
+  checkpoint: ConversationMatch,
+): CompactionSummaryNode['images'] {
+  if (checkpoint.event.type !== 'user/message') return undefined
+  const images = checkpoint.event.data.content.flatMap(block =>
+    block.type === 'image' ? [{ attachment: block.attachment }] : [])
+  return images.length === 0 ? undefined : images
 }
 
 function fallbackState(context: ConversationNodeContext<CommandState>): CommandState | undefined {

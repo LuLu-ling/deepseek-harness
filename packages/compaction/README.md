@@ -31,6 +31,8 @@ Each package below provides one piece of the feature; open a package page for ho
 | [`compaction-tool-result-pruner/`](compaction-tool-result-pruner/README.md) | Trims oversized tool outputs so less history needs condensing | `ctx.toolResultPruner` |
 | [`compaction-image-offload/`](compaction-image-offload/README.md) | Replaces over-budget request images with placeholders when an image-capable route rejects a request | listens to `agent/request-error` |
 | [`command-compact/`](command-compact/README.md) | The `/compact` command to condense history on demand | registers on `ctx.commands` |
+| [`snapcompact/`](snapcompact/README.md) | Local image archive of older history for a model that declares image input | library used by `compaction-basic` |
+| [`compaction-preference/`](compaction-preference/README.md) | Saved automatic method, `soft` or `snapcompact` | `ctx.compactionPreference` |
 
 -----
 

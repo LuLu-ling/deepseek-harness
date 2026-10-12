@@ -34,6 +34,15 @@
       "path": "../compaction"
     },
     {
+      "path": "../compaction-preference"
+    },
+    {
+      "path": "../snapcompact"
+    },
+    {
+      "path": "../../attachment/attachment"
+    },
+    {
       "path": "../compaction-tool-result-pruner"
     }
   ]

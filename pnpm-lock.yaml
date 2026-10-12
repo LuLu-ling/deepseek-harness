@@ -475,6 +475,9 @@ importers:
       '@deepseek-ai/schemastery':
         specifier: link:../../vendor/schemastery
         version: link:../../vendor/schemastery
+      '@lulu-ling/dsh-compaction-preference':
+        specifier: workspace:*
+        version: link:../../packages/compaction/compaction-preference
       commander:
         specifier: ^15.0.0
         version: 15.0.0
@@ -2344,6 +2347,9 @@ importers:
       '@deepseek-ai/dsh-working-directory':
         specifier: workspace:*
         version: link:../../session/working-directory
+      '@lulu-ling/dsh-compaction-preference':
+        specifier: workspace:*
+        version: link:../../compaction/compaction-preference
       '@lulu-ling/dsh-session-file-snapshot':
         specifier: workspace:*
         version: link:../../session/session-file-snapshot
@@ -2696,9 +2702,6 @@ importers:
       '@deepseek-ai/dsh-client-ui-settings-shell':
         specifier: workspace:*
         version: link:../../client/ui-settings-shell
-      '@lulu-ling/dsh-client-ui-settings-sounds':
-        specifier: workspace:*
-        version: link:../../client/ui-settings-sounds
       '@deepseek-ai/dsh-client-ui-settings-subagent':
         specifier: workspace:*
         version: link:../../client/ui-settings-subagent
@@ -2918,9 +2921,18 @@ importers:
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
+      '@lulu-ling/dsh-client-ui-compaction':
+        specifier: workspace:*
+        version: link:../../client/ui-compaction
       '@lulu-ling/dsh-client-ui-settings-session-snapshot':
         specifier: workspace:*
         version: link:../../client/ui-settings-session-snapshot
+      '@lulu-ling/dsh-client-ui-settings-sounds':
+        specifier: workspace:*
+        version: link:../../client/ui-settings-sounds
+      '@lulu-ling/dsh-compaction-preference':
+        specifier: workspace:*
+        version: link:../../compaction/compaction-preference
       commander:
         specifier: ^15.0.0
         version: 15.0.0
@@ -3616,6 +3628,48 @@ importers:
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+
+  packages/client/ui-compaction:
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:~
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-api-remotes':
+        specifier: workspace:*
+        version: link:../../api/remotes
+      '@deepseek-ai/dsh-api-session-controller':
+        specifier: workspace:*
+        version: link:../../api/session-controller
+      '@deepseek-ai/dsh-client-locale':
+        specifier: workspace:*
+        version: link:../locale
+      '@deepseek-ai/dsh-client-store':
+        specifier: workspace:*
+        version: link:../store
+      '@deepseek-ai/dsh-client-ui-commands':
+        specifier: workspace:*
+        version: link:../ui-commands
+      '@deepseek-ai/dsh-client-ui-primitives':
+        specifier: workspace:*
+        version: link:../ui-primitives
+      '@deepseek-ai/dsh-client-ui-renderer':
+        specifier: workspace:*
+        version: link:../ui-renderer
+      '@deepseek-ai/dsh-client-ui-session':
+        specifier: workspace:*
+        version: link:../ui-session
+      '@deepseek-ai/dsh-client-ui-settings':
+        specifier: workspace:*
+        version: link:../ui-settings
+      '@deepseek-ai/dsh-client-ui-slots':
+        specifier: workspace:*
+        version: link:../ui-slots
+      '@types/react':
+        specifier: ~18.3.1
+        version: 18.3.31
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -6653,6 +6707,9 @@ importers:
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
+      '@lulu-ling/dsh-snapcompact':
+        specifier: workspace:*
+        version: link:../snapcompact
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:~
@@ -6672,6 +6729,9 @@ importers:
       '@deepseek-ai/dsh-agent-loop-testkit':
         specifier: workspace:*
         version: link:../../test-support/agent-loop-testkit
+      '@deepseek-ai/dsh-attachment':
+        specifier: workspace:*
+        version: link:../../attachment/attachment
       '@deepseek-ai/dsh-commands':
         specifier: workspace:*
         version: link:../../interaction/commands
@@ -6702,6 +6762,9 @@ importers:
       '@deepseek-ai/dsh-tools':
         specifier: workspace:*
         version: link:../../core/tools
+      '@lulu-ling/dsh-compaction-preference':
+        specifier: workspace:*
+        version: link:../compaction-preference
 
   packages/compaction/compaction-image-offload:
     dependencies:
@@ -6746,6 +6809,16 @@ importers:
         specifier: workspace:*
         version: link:../../llm/token-meter
 
+  packages/compaction/compaction-preference:
+    dependencies:
+      '@deepseek-ai/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:~
+        version: link:../../../vendor/cordis
+
   packages/compaction/compaction-tool-result-pruner:
     dependencies:
       '@deepseek-ai/dsh-util-values':
@@ -6782,6 +6855,12 @@ importers:
       '@deepseek-ai/dsh-token-meter':
         specifier: workspace:*
         version: link:../../llm/token-meter
+
+  packages/compaction/snapcompact:
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:~
+        version: link:../../../vendor/cordis
 
   packages/computer-use/computer-use:
     devDependencies:
@@ -15677,6 +15756,12 @@ importers:
       '@deepseek-ai/schemastery':
         specifier: link:../../vendor/schemastery
         version: link:../../vendor/schemastery
+      '@lulu-ling/dsh-compaction-preference':
+        specifier: workspace:*
+        version: link:../../packages/compaction/compaction-preference
+      '@lulu-ling/dsh-snapcompact':
+        specifier: workspace:*
+        version: link:../../packages/compaction/snapcompact
 
   vendor/cordis:
     dependencies:

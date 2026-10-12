@@ -2215,6 +2215,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'client-ui-settings-agent-loop AgentLoopCard id \'agent-loop\'',
       '@lulu-ling/dsh-client-ui-settings-session-snapshot SnapshotCard id \'session-snapshot\'',
       'client-ui-settings-shell ShellCard id \'shell\'',
+      '@lulu-ling/dsh-client-ui-settings-sounds SoundsCard id \'sounds\'',
       'client-ui-settings-subagent SubagentCard id \'subagent\'',
       'client-ui-settings-web-search WebSearchCard id \'web-search\'',
     ],
@@ -2493,6 +2494,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'client-ui-chat LinkOpeningRow id \'link-opening\'',
       'client-ui-chat PerformanceUsageRow id \'performance-usage\'',
       'client-ui-chat TranscriptViewRow id \'transcript-view\'',
+      '@lulu-ling/dsh-client-ui-compaction CompactionMethodRow id \'context-compaction\'',
       'client-ui-conversation EnterBehaviorRow id \'composer-enter\'',
       'client-ui-permission-presets PermissionRow id \'permission\'',
       'client-ui-settings-general DeveloperToolsRow id \'developer-tools\'',
@@ -3066,7 +3068,9 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ownerProps: [
       '/** Geometry supplied to the sidebar brand-mark occupant. */\nexport interface SidebarBrandMarkOwnerProps {\n  /** Requested square edge in pixels. */\n  size: number\n}',
     ],
-    ownerPropsReferences: [],
+    ownerPropsReferences: [
+      'Geometry',
+    ],
     standardProps: [
       'useResource: UseResource',
       'useWorkspaces: SnapshotSelectorHook<WorkspaceSnapshot>',

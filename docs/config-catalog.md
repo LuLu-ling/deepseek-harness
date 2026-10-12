@@ -613,30 +613,6 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-client-ui-settings-models -->
 
-<!-- BEGIN GENERATED config-catalog:@lulu-ling/dsh-client-ui-settings-sounds -->
-<a id="deepseek-aidsh-client-ui-settings-sounds"></a>
-
-## `@lulu-ling/dsh-client-ui-settings-sounds`
-
-- `refs`: `Volatile` (`@deepseek-ai/cordis`)
-- `source`: [`packages/client/ui-settings-sounds/src/index.ts:12`](../packages/client/ui-settings-sounds/src/index.ts)
-
-```ts config-catalog
-/** Live prompt-sound choices. `'none'` is silence. */
-export interface Config {
-  /** Sound after a top-level session stops running. */
-  agent: Volatile<SoundChoice>
-  /** Sound for a new approval request. */
-  permissions: Volatile<SoundChoice>
-  /** Sound for an agent error outside a durable turn position. */
-  errors: Volatile<SoundChoice>
-}
-
-/** A saved prompt-sound field: silence or one playable id. */
-export type SoundChoice = (typeof SOUND_CHOICES)[number]
-```
-<!-- END GENERATED config-catalog:@lulu-ling/dsh-client-ui-settings-sounds -->
-
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-client-ui-sidebar-documentpreview -->
 <a id="deepseek-aidsh-client-ui-sidebar-documentpreview"></a>
 
@@ -751,6 +727,26 @@ export interface ModelCompactPolicyConfig extends CompactionPolicyConfig {
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-compaction-basic -->
+
+<!-- BEGIN GENERATED config-catalog:@lulu-ling/dsh-compaction-preference -->
+<a id="deepseek-aidsh-compaction-preference"></a>
+
+## `@lulu-ling/dsh-compaction-preference`
+
+- `refs`: `Volatile` (`@deepseek-ai/cordis`)
+- `source`: [`packages/compaction/compaction-preference/src/index.ts:29`](../packages/compaction/compaction-preference/src/index.ts)
+
+```ts config-catalog
+/** Validated preference configuration. */
+export interface Config {
+  /** Automatic method. Invalid values fail at load. */
+  method: Volatile<CompactionMethod>
+}
+
+/** Automatic compaction method. `snapcompact` still falls back per model at compaction time. */
+export type CompactionMethod = 'soft' | 'snapcompact'
+```
+<!-- END GENERATED config-catalog:@lulu-ling/dsh-compaction-preference -->
 
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-compaction-tool-result-pruner -->
 <a id="deepseek-aidsh-compaction-tool-result-pruner"></a>
@@ -4520,6 +4516,30 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-workspace-changes -->
 
+<!-- BEGIN GENERATED config-catalog:@lulu-ling/dsh-client-ui-settings-sounds -->
+<a id="lulu-lingdsh-client-ui-settings-sounds"></a>
+
+## `@lulu-ling/dsh-client-ui-settings-sounds`
+
+- `refs`: `Volatile` (`@deepseek-ai/cordis`)
+- `source`: [`packages/client/ui-settings-sounds/src/index.ts:12`](../packages/client/ui-settings-sounds/src/index.ts)
+
+```ts config-catalog
+/** Live prompt-sound choices. `'none'` is silence. */
+export interface Config {
+  /** Sound after a top-level session stops running. */
+  agent: Volatile<SoundChoice>
+  /** Sound for a new approval request. */
+  permissions: Volatile<SoundChoice>
+  /** Sound for an agent error outside a durable turn position. */
+  errors: Volatile<SoundChoice>
+}
+
+/** A saved prompt-sound field: silence or one playable id. */
+export type SoundChoice = (typeof SOUND_CHOICES)[number]
+```
+<!-- END GENERATED config-catalog:@lulu-ling/dsh-client-ui-settings-sounds -->
+
 <!-- BEGIN GENERATED config-catalog:@lulu-ling/dsh-session-file-snapshot -->
 <a id="lulu-lingdsh-session-file-snapshot"></a>
 
@@ -4573,6 +4593,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 | `@deepseek-ai/dsh-client-ui-brand-official` | — | [`packages/client/ui-brand-official/src/index.ts`](../packages/client/ui-brand-official/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-chat` | — | [`packages/client/ui-chat/src/index.ts`](../packages/client/ui-chat/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-commands` | — | [`packages/client/ui-commands/src/index.ts`](../packages/client/ui-commands/src/index.ts) |
+| `@lulu-ling/dsh-client-ui-compaction` | — | [`packages/client/ui-compaction/src/index.ts`](../packages/client/ui-compaction/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-conversation` | — | [`packages/client/ui-conversation/src/index.ts`](../packages/client/ui-conversation/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-cordis` | — | [`packages/extensions/ui-cordis/src/index.ts`](../packages/extensions/ui-cordis/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-deliverables` | `systemPrompt` · `connection` · `sessionQuery` · `sessionController` · `workspaceFiles` · `fs` · `sandboxPolicy` · `workspaceChanges` | [`packages/client/ui-deliverables/src/index.ts`](../packages/client/ui-deliverables/src/index.ts) |
@@ -4748,6 +4769,7 @@ Imported as libraries by other packages; a `cordis.yml` cannot load them.
 | `@deepseek-ai/dsh-session-snapshot` | — | [`packages/test-support/session-snapshot/src/index.ts`](../packages/test-support/session-snapshot/src/index.ts) |
 | `@deepseek-ai/dsh-session-telemetry` | — | [`packages/session/session-telemetry/src/index.ts`](../packages/session/session-telemetry/src/index.ts) |
 | `@deepseek-ai/dsh-session-title-llm` | — | [`packages/session/session-title-llm/src/index.ts`](../packages/session/session-title-llm/src/index.ts) |
+| `@lulu-ling/dsh-snapcompact` | — | [`packages/compaction/snapcompact/src/index.ts`](../packages/compaction/snapcompact/src/index.ts) |
 | `@deepseek-ai/dsh-ssh-helper-runtime` | — | [`packages/ssh/ssh-helper-runtime/src/index.ts`](../packages/ssh/ssh-helper-runtime/src/index.ts) |
 | `@deepseek-ai/dsh-timeout` | — | [`packages/util/timeout/src/index.ts`](../packages/util/timeout/src/index.ts) |
 | `@deepseek-ai/dsh-typert-generator` | — | [`packages/typert/generator/src/index.ts`](../packages/typert/generator/src/index.ts) |

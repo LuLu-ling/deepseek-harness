@@ -153,6 +153,8 @@ export abstract class CompactionEngine extends Service {
    * @param agent - idle agent whose durable history should be compacted.
    * @param signal - cancellation scoped to this compaction request.
    * @param sourceCommandId - initiating command identity for a manual compaction.
+   * @param mode - one-shot method. Omitted and `soft` summarize. `snapcompact`
+   * archives locally and does not fall back to a summary.
    * @returns the compaction result, or `null` when no safe useful range exists.
    * @throws {@link ManualCompactionError} for expected busy, agent-cancellation,
    * changed-span, summarization/shrink, commit-stage, or persistence failures;
@@ -163,6 +165,7 @@ export abstract class CompactionEngine extends Service {
     agent: ManualCompactAgentContext,
     signal: AbortSignal,
     sourceCommandId?: CommandId,
+    mode?: 'soft' | 'snapcompact',
   ): Promise<CompactionResult | null>
 
   /**

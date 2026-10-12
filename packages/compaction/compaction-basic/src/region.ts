@@ -23,10 +23,20 @@ import { SessionSeq, type Session, type SessionEvent } from '@deepseek-ai/dsh-se
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { frameSummary } from './summarizer.ts'
 import type { SummarizationInput, SummaryResult } from './summarizer.ts'
+import type { SnapcompactSummaryRecord } from './snapcompact-pass.ts'
 interface RegionDependencies {
   readonly meter: TokenMeter
   summarize(input: SummarizationInput, agent: Agent, signal?: AbortSignal): Promise<SummaryResult>
   recover(error: unknown, agent: Agent, sourceEventSeqs: readonly SessionSeq[], signal?: AbortSignal): boolean
+  /** Local archive used instead of `summarize` when the transaction mode is snapcompact. */
+  snapcompact?(
+    session: Session,
+    prepared: PreparedCompaction,
+    agent: Agent,
+    compactionId: CompactionResult['compactionId'],
+    sourceCommandId: CommandId | undefined,
+    signal?: AbortSignal,
+  ): Promise<SummaryResult & { checkpointMessage: UserMessage; snapcompact: SnapcompactSummaryRecord }>
 }
 
 /** One validated inclusive span of current surface positions. */
@@ -50,6 +60,7 @@ interface PreparedCompaction extends SurfaceSelection {
 
 type SummarizedCompaction = PreparedCompaction & SummaryResult & {
   readonly checkpointMessage: UserMessage
+  readonly snapcompact?: SnapcompactSummaryRecord
 }
 
 interface CompactionTransactionOptions {
@@ -61,6 +72,8 @@ interface CompactionTransactionOptions {
   readonly flush?: () => Promise<void>
   /** Manual command that initiated this transaction, when present. */
   readonly sourceCommandId?: CommandId
+  /** One-shot method. Omitted and `soft` summarize. `snapcompact` does not fall back. */
+  readonly mode?: 'soft' | 'snapcompact'
 }
 
 interface CompactionEntryState {
@@ -228,6 +241,7 @@ export async function compactSurfaceRegion(
       options.sourceCommandId,
       assertStable,
       signal,
+      options.mode,
     )
     if (options.owner === null) signal?.throwIfAborted()
     assertStable(dependencies, session, summarized)
@@ -383,7 +397,7 @@ function prepareCompaction(
   }
 }
 
-/** Run the summarizer and frame its replacement checkpoint. */
+/** Run the summarizer, or the snapcompact archive, and frame its checkpoint. */
 async function summarizeCompaction(
   dependencies: RegionDependencies,
   prepared: PreparedCompaction,
@@ -392,7 +406,16 @@ async function summarizeCompaction(
   sourceCommandId: CommandId | undefined,
   assertStable: StabilityCheck,
   signal?: AbortSignal,
+  mode?: 'soft' | 'snapcompact',
 ): Promise<SummarizedCompaction> {
+  if (mode === 'snapcompact') {
+    if (dependencies.snapcompact === undefined) throw new Error('snapcompact is not available')
+    signal?.throwIfAborted()
+    const archived = await dependencies.snapcompact(
+      agent.session, prepared, agent, compactionId, sourceCommandId, signal,
+    )
+    return { ...prepared, ...archived }
+  }
   let summaryResult: SummaryResult
   for (;;) {
     signal?.throwIfAborted()
@@ -484,6 +507,7 @@ function commitCompactionBody(
     maxTokens,
     usage,
     checkpointMessage,
+    snapcompact,
   } = summarized
   const callRecord = summarized.llmStreamCall === true
     ? { rawOutput: summarized.rawOutput, llmStreamCall: true as const }
@@ -502,6 +526,7 @@ function commitCompactionBody(
     model,
     ...maxTokens === undefined ? {} : { maxTokens },
     ...usage === undefined ? {} : { usage },
+    ...snapcompact === undefined ? {} : { snapcompact },
   })
   session.append('user/message', checkpointMessage, {
     surfaceOp: { op: 'replace', startSeq: start, endSeq: end },

@@ -22,22 +22,29 @@ const COMPACT_CHECKPOINT_MARKER = Object.freeze({ kind: 'compact-checkpoint' } a
 export type CompactionCheckpointSource = typeof COMPACT_CHECKPOINT_MARKER & {
   readonly compactionId: CompactionId
   readonly sourceCommandId?: CommandId
+  /** Source text of a snapcompact archive, so a later pass can unfold it without reading the log. */
+  readonly snapcompactSourceText?: string
 }
 
 /**
  * Create a checkpoint source correlated with one compaction transaction.
  * @param compactionId - owning compaction identity.
  * @param sourceCommandId - initiating manual command, when present.
+ * @param snapcompactSourceText - archived source text, when this checkpoint is a snapcompact frame.
  * @returns immutable checkpoint source.
  */
 export function compactCheckpointSource(
   compactionId: CompactionId,
   sourceCommandId?: CommandId,
+  snapcompactSourceText?: string,
 ): CompactionCheckpointSource {
   return Object.freeze({
     ...COMPACT_CHECKPOINT_MARKER,
     compactionId,
     ...sourceCommandId === undefined ? {} : { sourceCommandId },
+    ...snapcompactSourceText === undefined || snapcompactSourceText.length === 0
+      ? {}
+      : { snapcompactSourceText },
   })
 }
 

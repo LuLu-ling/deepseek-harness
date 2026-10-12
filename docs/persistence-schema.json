@@ -5939,7 +5939,7 @@
       "kind": "event",
       "event": "compaction/summary",
       "surface": false,
-      "digest": "e2f9a41e0989f54ed8cee80f8db2bcf9d60a5c810dc9d45b83fa050b9dce7602",
+      "digest": "f2871dde3aac9eaa06f0552f61a038d917bb3e3fb06195945307158c6b8829e3",
       "schema": {
         "root": 0,
         "nodes": [
@@ -5968,7 +5968,7 @@
               },
               {
                 "name": "type",
-                "type": 35,
+                "type": 38,
                 "optional": false
               }
             ],
@@ -5978,7 +5978,7 @@
             "kind": "union",
             "types": [
               2,
-              34
+              37
             ]
           },
           {
@@ -6030,6 +6030,11 @@
                 "optional": false
               },
               {
+                "name": "snapcompact",
+                "type": 33,
+                "optional": true
+              },
+              {
                 "name": "sourceCommandId",
                 "type": 3,
                 "optional": true
@@ -6041,7 +6046,7 @@
               },
               {
                 "name": "usage",
-                "type": 33,
+                "type": 36,
                 "optional": true
               }
             ],
@@ -6067,13 +6072,54 @@
             "kind": "union",
             "types": [
               8,
-              10,
-              12,
+              11,
+              13,
               15,
-              17,
-              19,
-              28
+              18,
+              20,
+              22
             ]
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "attachment",
+                "type": 9,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 10,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "attachmentId",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "bytes",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "name",
+                "type": 3,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "literal",
+            "value": "file"
           },
           {
             "kind": "object",
@@ -6085,7 +6131,7 @@
               },
               {
                 "name": "type",
-                "type": 9,
+                "type": 12,
                 "optional": false
               }
             ],
@@ -6105,7 +6151,7 @@
               },
               {
                 "name": "type",
-                "type": 11,
+                "type": 14,
                 "optional": false
               }
             ],
@@ -6120,7 +6166,7 @@
             "properties": [
               {
                 "name": "tool",
-                "type": 13,
+                "type": 16,
                 "optional": true
               },
               {
@@ -6130,7 +6176,7 @@
               },
               {
                 "name": "type",
-                "type": 14,
+                "type": 17,
                 "optional": false
               }
             ],
@@ -6154,7 +6200,7 @@
               },
               {
                 "name": "type",
-                "type": 16,
+                "type": 19,
                 "optional": false
               }
             ],
@@ -6184,7 +6230,7 @@
               },
               {
                 "name": "type",
-                "type": 18,
+                "type": 21,
                 "optional": false
               }
             ],
@@ -6199,7 +6245,7 @@
             "properties": [
               {
                 "name": "attachment",
-                "type": 20,
+                "type": 23,
                 "optional": false
               },
               {
@@ -6209,7 +6255,7 @@
               },
               {
                 "name": "type",
-                "type": 27,
+                "type": 30,
                 "optional": false
               }
             ],
@@ -6235,7 +6281,7 @@
               },
               {
                 "name": "mediaType",
-                "type": 21,
+                "type": 24,
                 "optional": false
               },
               {
@@ -6245,7 +6291,7 @@
               },
               {
                 "name": "originalDimensions",
-                "type": 26,
+                "type": 29,
                 "optional": true
               },
               {
@@ -6259,10 +6305,10 @@
           {
             "kind": "union",
             "types": [
-              22,
-              23,
-              24,
-              25
+              25,
+              26,
+              27,
+              28
             ]
           },
           {
@@ -6305,47 +6351,6 @@
             "kind": "object",
             "properties": [
               {
-                "name": "attachment",
-                "type": 29,
-                "optional": false
-              },
-              {
-                "name": "type",
-                "type": 30,
-                "optional": false
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "attachmentId",
-                "type": 3,
-                "optional": false
-              },
-              {
-                "name": "bytes",
-                "type": 5,
-                "optional": false
-              },
-              {
-                "name": "name",
-                "type": 3,
-                "optional": false
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "literal",
-            "value": "file"
-          },
-          {
-            "kind": "object",
-            "properties": [
-              {
                 "name": "end",
                 "type": 5,
                 "optional": false
@@ -6361,6 +6366,62 @@
           {
             "kind": "array",
             "element": 5
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "frames",
+                "type": 34,
+                "optional": false
+              },
+              {
+                "name": "sourceText",
+                "type": 3,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 35
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "attachmentId",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "chars",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "cols",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "font",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "rows",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "variant",
+                "type": 3,
+                "optional": false
+              }
+            ],
+            "indices": []
           },
           {
             "kind": "object",
@@ -6442,6 +6503,11 @@
                 "optional": false
               },
               {
+                "name": "snapcompact",
+                "type": 33,
+                "optional": true
+              },
+              {
                 "name": "sourceCommandId",
                 "type": 3,
                 "optional": true
@@ -6453,7 +6519,7 @@
               },
               {
                 "name": "usage",
-                "type": 33,
+                "type": 36,
                 "optional": true
               }
             ],
@@ -22277,6 +22343,11 @@
       ]
     },
     {
+      "digest": "0542450d9c4edc4774987fad1fefcdeeb10d260864a33541d806cdf908bb3857",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "05a2796621b1ee6c03ef7abe560b25116bb4da4d592312117242a78415a32b04",
       "names": [],
       "sources": []
@@ -22513,6 +22584,11 @@
       "sources": []
     },
     {
+      "digest": "1494cd1c0d03d8042c5dc2f8f886736c28d4fd48567aaf13d070801c1fd5bf41",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "15196447222782e773eb943c92b18316ce96b9af0f0cfddb6e57ba8274ecc5ff",
       "names": [],
       "sources": []
@@ -22598,6 +22674,13 @@
       "digest": "1986c2664009c99155e44795676c887fa67f7c55cd2d5e6b648ff763e0ab033a",
       "names": [],
       "sources": []
+    },
+    {
+      "digest": "19d81fb4c29982d5a20569a0af6e4a842b11548540bbd5b2cbe99e4d3282440f",
+      "names": [],
+      "sources": [
+        "packages/compaction/compaction/src/types.ts:60"
+      ]
     },
     {
       "digest": "1a2718b00937b236a0d0910ef5dab2f9f8b65e4bde410cc21f15fbbf29f584d3",
@@ -23083,6 +23166,13 @@
       ]
     },
     {
+      "digest": "39cc1f3c7aadf9df01da6f6fb4b5205f77a260fa0cd242dad1dc6561d43d4de7",
+      "names": [],
+      "sources": [
+        "packages/compaction/compaction/src/types.ts:58"
+      ]
+    },
+    {
       "digest": "3b04790e08b35241ffa0d38f6d7e4f8788aa921341f6c0d7574a329397c59408",
       "names": [],
       "sources": []
@@ -23373,7 +23463,7 @@
         "packages/workflow/workflow/src/types.ts#WorkflowRunId"
       ],
       "sources": [
-        "packages/api/session-controller/src/types.ts:403",
+        "packages/api/session-controller/src/types.ts:407",
         "packages/attachment/attachment/src/brand.ts:6",
         "packages/compaction/compaction/src/brand.ts:4",
         "packages/core/session/src/types.ts:20",
@@ -23546,11 +23636,6 @@
       "sources": []
     },
     {
-      "digest": "576a2de8355eb09850963ff5953420b172e274d9283666eb7d889097db120796",
-      "names": [],
-      "sources": []
-    },
-    {
       "digest": "5776e5553ff2dfe3f5bc202dbb1e7c9f93e35a531aebb7764c23b2b6153b2ccc",
       "names": [],
       "sources": []
@@ -23662,7 +23747,7 @@
       "digest": "5dd766ccd1702a1142ad8b4bd44f2242f8e8a6752669ad3de0a5d224329b1438",
       "names": [],
       "sources": [
-        "packages/compaction/compaction/src/types.ts:82"
+        "packages/compaction/compaction/src/types.ts:97"
       ]
     },
     {
@@ -23818,7 +23903,7 @@
       "digest": "6a4f72e2e179e17b922f2a9392c0e1c8f8c707f32494372454850a3eb184a6e7",
       "names": [],
       "sources": [
-        "packages/api/session-controller/src/types.ts:408"
+        "packages/api/session-controller/src/types.ts:412"
       ]
     },
     {
@@ -23946,6 +24031,11 @@
     },
     {
       "digest": "7180844e1066230c5e891f1b9ccd942423b0fe48aac6ded7eef2a285b288a732",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "71925cbb1e9cb26332c8cfc4d9cd305e66aa9f1a5d6aee6a47c04e56179329d8",
       "names": [],
       "sources": []
     },
@@ -24491,11 +24581,6 @@
       "sources": []
     },
     {
-      "digest": "9947aa5938fe19a895298da412917acbf9ffb5093a73ab8baa257e6ae9e63a07",
-      "names": [],
-      "sources": []
-    },
-    {
       "digest": "998f22585a5d73ec005365e203f07fc3b3a029e82323fdda3fd7f13b0a9639d0",
       "names": [],
       "sources": []
@@ -24575,7 +24660,7 @@
       "names": [],
       "sources": [
         "packages/compaction/compaction/src/types.ts:38",
-        "packages/compaction/compaction/src/types.ts:84"
+        "packages/compaction/compaction/src/types.ts:99"
       ]
     },
     {
@@ -24747,11 +24832,6 @@
       "sources": [
         "packages/schedule/schedule/src/types.ts:173"
       ]
-    },
-    {
-      "digest": "a99ec0993c62c058e50af9f68922202a3b54f5e259bc2abf1915a73381d2316d",
-      "names": [],
-      "sources": []
     },
     {
       "digest": "a99f76fd149051c363f960bfeeb5b9509587ecaf7591a42797e4bfe810d8987a",
@@ -25265,7 +25345,7 @@
       "digest": "ca59530d1a4f3e191b4032bc4a20eded0d827db8b5a7efb27b3af9e9b456c6f2",
       "names": [],
       "sources": [
-        "packages/compaction/compaction/src/types.ts:72"
+        "packages/compaction/compaction/src/types.ts:87"
       ]
     },
     {
@@ -25416,6 +25496,11 @@
       ]
     },
     {
+      "digest": "da71b35accf69fcd5a6b52c5432935435e394a08105a3fa75d7063772f22bf78",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "dacf3d5f3e4ff619c1320e64a48dec5e7ecd7870bece65fbd449a0e63adfa521",
       "names": [],
       "sources": []
@@ -25508,11 +25593,6 @@
     },
     {
       "digest": "e2d0367e5716bc188435e51718ebff8ce873190625fa93b1c5331102d98758fa",
-      "names": [],
-      "sources": []
-    },
-    {
-      "digest": "e2f9a41e0989f54ed8cee80f8db2bcf9d60a5c810dc9d45b83fa050b9dce7602",
       "names": [],
       "sources": []
     },
@@ -25740,6 +25820,11 @@
     },
     {
       "digest": "f230c0b583e23b25ee0a61dbe4c05e95c1e2ae44b27939501eb9e03696f0c278",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "f2871dde3aac9eaa06f0552f61a038d917bb3e3fb06195945307158c6b8829e3",
       "names": [],
       "sources": []
     },

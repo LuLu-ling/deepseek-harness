@@ -199,6 +199,8 @@ export interface CompactionSummaryNode {
   shadowedItemCount: number | null
   /** Estimated token price of the replaced items, or null when the summary event is unavailable or malformed. */
   shadowedTokenCount: number | null
+  /** Image attachments on the checkpoint user message. Absent when the checkpoint has none. */
+  images?: readonly { readonly attachment: ImageAttachmentRef }[]
 }
 
 /**

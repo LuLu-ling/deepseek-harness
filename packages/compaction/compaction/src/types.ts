@@ -51,6 +51,21 @@ declare module '@deepseek-ai/dsh-session/types' {
       maxTokens?: number
       /** Provider-reported token usage for the summarization request, when emitted. */
       usage?: TokenUsage
+      /**
+       * Source text and frame geometry for a snapcompact checkpoint.
+       * Absent on a soft summary. Old readers ignore it. PNG bytes are not stored here.
+       */
+      snapcompact?: {
+        sourceText: string
+        frames: {
+          cols: number
+          rows: number
+          chars: number
+          font: string
+          variant: string
+          attachmentId: string
+        }[]
+      }
     } & (
       | {
         /** Complete provider output before the backend's safe summary projection. */

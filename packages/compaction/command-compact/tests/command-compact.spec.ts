@@ -32,7 +32,7 @@ class StubCompactionEngine extends CompactionEngine {
   result: CompactionResult | null = RESULT
   failure: unknown
   operation: (() => Promise<CompactionResult | null>) | undefined
-  calls: { agent: ManualCompactAgentContext; signal: AbortSignal }[] = []
+  calls: { agent: ManualCompactAgentContext; signal: AbortSignal; mode?: 'soft' | 'snapcompact' }[] = []
 
   override compactIfNeeded(
     _agent: CompactionAgentContext,
@@ -50,8 +50,9 @@ class StubCompactionEngine extends CompactionEngine {
     agent: ManualCompactAgentContext,
     signal: AbortSignal,
     sourceCommandId?: Parameters<CompactionEngine['compactNow']>[2],
+    mode?: Parameters<CompactionEngine['compactNow']>[3],
   ): Promise<CompactionResult | null> {
-    this.calls.push({ agent, signal })
+    this.calls.push({ agent, signal, ...mode === undefined ? {} : { mode } })
     if (this.operation !== undefined) return this.operation()
     return this.failure === undefined
       ? Promise.resolve(this.result === null ? null : this.appendResult(agent, this.result, sourceCommandId))
@@ -199,17 +200,47 @@ describe('/compact human command', () => {
     const rejected = await run(test, ' now')
     expect(rejected.result).toEqual({
       kind: 'error',
-      text: 'Usage: /compact (no arguments)',
+      text: 'Usage: /compact [soft|snapcompact]',
     })
     expect(rejected.commandId).toBe(expectLastLifecycle(test, ' now', rejected.result))
     expect(test.compact.calls).toHaveLength(1)
   })
 
+  it('runs soft explicitly and refuses snapcompact without a declared image modality', async () => {
+    const test = await harness()
+    const soft = await run(test, ' soft')
+    expect(soft.result.kind).toBe('success')
+    expect(test.compact.calls.at(-1)?.mode).toBe('soft')
+
+    const refused = await run(test, ' snapcompact')
+    expect(refused.result).toEqual({
+      kind: 'error',
+      text: 'Snapcompact needs a model that declares image input.',
+    })
+    expect(test.compact.calls).toHaveLength(1)
+
+    test.agent.options.provider = 'vision'
+    test.agent.options.model = 'vision-model'
+    let modalities = ['text']
+    test.ctx.reflect.provide('llm', {
+      resolveModelInfo: () => Promise.resolve({ inputModalities: modalities }),
+    })
+    const textOnly = await run(test, ' snapcompact')
+    expect(textOnly.result).toEqual({
+      kind: 'error',
+      text: 'Snapcompact needs a model that declares image input.',
+    })
+
+    modalities = ['text', 'image']
+    const accepted = await run(test, ' snapcompact')
+    expect(accepted.result.kind).toBe('success')
+    expect(test.compact.calls.at(-1)?.mode).toBe('snapcompact')
+  })
   it.each([
     ['busy', 'Compaction is unavailable because this process has an active compaction, or the agent is not idle.'],
     ['cancelled', 'Compaction cancelled.'],
     ['changed', 'The history selected for compaction changed before it could be replaced. The attempt is recorded in the session log.'],
-    ['summary', 'Compaction could not produce a useful summary. The attempt is recorded in the session log.'],
+    ['summary', 'Compaction failed: backend detail'],
     ['commit', 'Compaction did not finish cleanly; some session history may have changed. Inspect the current session state before retrying.'],
     ['persistence', 'Compaction finished, but the session could not be saved.'],
   ] as const)('maps expected %s failures to direct errors', async (code, text) => {
@@ -218,6 +249,23 @@ describe('/compact human command', () => {
     const execution = await run(test)
     expect(execution.result).toEqual({ kind: 'error', text })
     expect(execution.commandId).toBe(expectLastLifecycle(test, '', execution.result))
+  })
+
+  it('appends a distinct summary cause and skips a repeated or blank one', async () => {
+    const test = await harness()
+    test.compact.failure = new ManualCompactionError('summary', 'archive was not smaller', {
+      cause: new Error('12 frames exceed the window'),
+    })
+    expect((await run(test)).result).toEqual({
+      kind: 'error',
+      text: 'Compaction failed: archive was not smaller 12 frames exceed the window',
+    })
+
+    test.compact.failure = new ManualCompactionError('summary', 'same', { cause: new Error('same') })
+    expect((await run(test)).result).toEqual({ kind: 'error', text: 'Compaction failed: same' })
+
+    test.compact.failure = new ManualCompactionError('summary', 'plain', { cause: new Error('   ') })
+    expect((await run(test)).result).toEqual({ kind: 'error', text: 'Compaction failed: plain' })
   })
 
   it('preserves cancellation and unexpected implementation failures', async () => {

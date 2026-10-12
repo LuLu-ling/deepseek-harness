@@ -7,11 +7,15 @@ import type { Context } from '@deepseek-ai/cordis'
 import { CommandDefinitionId } from '@deepseek-ai/dsh-commands/brand'
 import { ManualCompactionError } from '@deepseek-ai/dsh-compaction'
 import type { CommandInvocation, CommandResult } from '@deepseek-ai/dsh-commands'
+import type {} from '@deepseek-ai/dsh-llm'
 
 export const name = 'command-compact'
 export const inject = ['commands', 'compaction']
 
-const USAGE = 'Usage: /compact (no arguments)'
+const USAGE = 'Usage: /compact [soft|snapcompact]'
+const SNAPCOMPACT_IMAGE = 'Snapcompact needs a model that declares image input.'
+
+type CompactMode = 'soft' | 'snapcompact'
 
 /** Fail loudly if a locally closed union gains an unhandled member. */
 /* v8 ignore start -- closed-union backstop is unreachable without violating the TypeScript contract */
@@ -36,10 +40,7 @@ function expectedFailure(error: ManualCompactionError): CommandResult {
         text: 'The history selected for compaction changed before it could be replaced. The attempt is recorded in the session log.',
       }
     case 'summary':
-      return {
-        kind: 'error',
-        text: 'Compaction could not produce a useful summary. The attempt is recorded in the session log.',
-      }
+      return { kind: 'error', text: summaryFailure(error) }
     case 'commit':
       return {
         kind: 'error',
@@ -55,16 +56,67 @@ function expectedFailure(error: ManualCompactionError): CommandResult {
   }
 }
 
-/** Execute one argument-free manual compaction request. */
+/** The failure's own reason, plus a distinct cause when one was recorded. */
+function summaryFailure(error: ManualCompactionError): string {
+  const reason = error.message.trim()
+  const cause = error.cause instanceof Error ? error.cause.message.trim() : ''
+  return cause.length > 0 && cause !== reason
+    ? `Compaction failed: ${reason} ${cause}`
+    : `Compaction failed: ${reason}`
+}
+
+/** Parse one optional mode token. Extra text is rejected. */
+function parseMode(raw: string): CompactMode | 'bare' | 'invalid' {
+  const token = raw.trim()
+  if (token.length === 0) return 'bare'
+  if (token === 'soft' || token === 'snapcompact') return token
+  return 'invalid'
+}
+
+/** Session route, then the agent's configured route. Absent fields are not image support. */
+function currentRoute(invocation: CommandInvocation): { provider: string; model: string } | undefined {
+  const header = invocation.agent.session.requestHeader()?.config
+  if (header !== undefined && header.provider.length > 0 && header.model.length > 0) {
+    return { provider: header.provider, model: header.model }
+  }
+  const provider = invocation.agent.options.provider
+  const model = invocation.agent.options.model
+  if (provider === undefined || provider.length === 0 || model === undefined || model.length === 0) return undefined
+  return { provider, model }
+}
+
+/**
+ * Positive image declaration only. A missing modality list is not support.
+ * @param ctx - context that may carry `ctx.llm`.
+ * @param invocation - command whose agent owns the current route.
+ * @returns whether the routed model declared `image` input.
+ */
+async function declaresImage(ctx: Context, invocation: CommandInvocation): Promise<boolean> {
+  const route = currentRoute(invocation)
+  if (route === undefined) return false
+  const llm = ctx.get('llm')
+  if (llm === undefined) return false
+  const info = await llm.resolveModelInfo(route.provider, route.model, invocation.signal)
+  return info.inputModalities?.includes('image') === true
+}
+
+/** Execute one manual compaction request. A mode token does not change the saved preference. */
 async function executeCompact(
   ctx: Context,
   invocation: CommandInvocation,
 ): Promise<CommandResult> {
-  if (invocation.rawInput.trim().length > 0) {
-    return { kind: 'error', text: USAGE }
+  const mode = parseMode(invocation.rawInput)
+  if (mode === 'invalid') return { kind: 'error', text: USAGE }
+  if (mode === 'snapcompact' && !await declaresImage(ctx, invocation)) {
+    return { kind: 'error', text: SNAPCOMPACT_IMAGE }
   }
   try {
-    const result = await ctx.compaction.compactNow(invocation.agent, invocation.signal, invocation.commandId)
+    const result = await ctx.compaction.compactNow(
+      invocation.agent,
+      invocation.signal,
+      invocation.commandId,
+      mode === 'bare' ? undefined : mode,
+    )
     if (result === null) return { kind: 'success', text: 'No compactable history yet.' }
     return {
       kind: 'success',

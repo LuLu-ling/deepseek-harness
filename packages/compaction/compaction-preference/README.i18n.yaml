@@ -1,0 +1,40 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/compaction/compaction-preference/README.md
+/:
+  en: f035c18c11876c3b
+  zh: afd9ffea3da52a03
+/lulu-ling-dsh-compaction-preference:
+  en: 6f58b2b2c74abe6e
+  zh: 399673b0b83b39ff
+/lulu-ling-dsh-compaction-preference/summary:
+  en: 97a16993f5993030
+  zh: b8eb91dcf6a9de28
+/lulu-ling-dsh-compaction-preference/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: a8de62241d29e58f
+/lulu-ling-dsh-compaction-preference/use-this-package:
+  en: 008a56bc1df1555e
+  zh: 6a0ac2e6088d831a
+/lulu-ling-dsh-compaction-preference/use-this-package/minimal-configuration:
+  en: a67510612f8dbc2e
+  zh: b723349f5f9aed9a
+/lulu-ling-dsh-compaction-preference/understand-the-implementation:
+  en: a0aa0f1462b2d34f
+  zh: 6b7686e4fc378c73
+/lulu-ling-dsh-compaction-preference/further-exploration:
+  en: 63bf9fdd0c2ea1da
+  zh: 3ba18b441bc9daa8
+/lulu-ling-dsh-compaction-preference/model-experience:
+  en: d74d7fed0613e565
+  zh: ae6ed79f46825331
+/lulu-ling-dsh-compaction-preference/model-experience/kv-cache-effect:
+  en: e488128329807cf9
+  zh: 09c9742dfd535938
+/lulu-ling-dsh-compaction-preference/known-limitations-and-deferred-work:
+  en: a955f921d849675f
+  zh: 328703c1a8f1558e
+/lulu-ling-dsh-compaction-preference/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: fd71ba5e495ef0ef

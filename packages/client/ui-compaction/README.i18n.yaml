@@ -1,0 +1,37 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/client/ui-compaction/README.md
+/:
+  en: cbc61e012d7df74d
+  zh: 85ba9763f69b40ad
+/lulu-ling-dsh-client-ui-compaction:
+  en: 4aedbb126b7bb540
+  zh: 513466a07e3b33f7
+/lulu-ling-dsh-client-ui-compaction/summary:
+  en: 9c386c4d6c00908d
+  zh: 7b26216aefd427e3
+/lulu-ling-dsh-client-ui-compaction/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 1f9a04bdb56aa96d
+/lulu-ling-dsh-client-ui-compaction/use-this-package:
+  en: 3254b5f2f5408b4b
+  zh: 74b16d51434ac5f5
+/lulu-ling-dsh-client-ui-compaction/understand-the-implementation:
+  en: 8e12aaf9f1854a26
+  zh: 1c50f781982d6d6d
+/lulu-ling-dsh-client-ui-compaction/further-exploration:
+  en: a6627362e505fb1a
+  zh: 24d9839119841227
+/lulu-ling-dsh-client-ui-compaction/model-experience:
+  en: a2a429e3de88ebce
+  zh: 21c8941145030538
+/lulu-ling-dsh-client-ui-compaction/model-experience/kv-cache-effect:
+  en: ca75c51c89c2c9b0
+  zh: 3aee0c474816b556
+/lulu-ling-dsh-client-ui-compaction/known-limitations-and-deferred-work:
+  en: de039c0f08623a68
+  zh: 79fe551fa42b7e07
+/lulu-ling-dsh-client-ui-compaction/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: 8ec3e73528ddb1a6

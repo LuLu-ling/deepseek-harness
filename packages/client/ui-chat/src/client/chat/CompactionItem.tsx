@@ -2,6 +2,7 @@
 // expandable only when the current window includes its cited summary.
 
 import { memo, useMemo, useState } from 'react'
+import type { RenderMessageImages } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import {
   IconApiOutlineRegular,
   IconChevronDownOutlineRegular,
@@ -19,6 +20,8 @@ interface CompactionItemProps {
   title?: string
   /** Command settlement text used when structured compaction counts are unavailable. */
   fallbackSummary?: string | null
+  /** Existing message-image renderer. Absent renderers keep the text card. */
+  renderMessageImages?: RenderMessageImages
   /** The owning view's locale seat. */
   t: ChatViewSlotProps['t']
 }
@@ -32,11 +35,13 @@ export const CompactionItem = memo(function CompactionItem({
   node,
   title,
   fallbackSummary,
+  renderMessageImages,
   t,
 }: CompactionItemProps) {
   const [expanded, setExpanded] = useState(false)
   const labels = useMemo(() => markdownLabels(t), [t])
-  const expandable = node.summary !== null
+  const images = node.images ?? []
+  const expandable = node.summary !== null || images.length > 0
   const open = expandable && expanded
   const summary = node.shadowedItemCount !== null && node.shadowedTokenCount !== null
     ? t('message.compaction.completed', {
@@ -69,8 +74,15 @@ export const CompactionItem = memo(function CompactionItem({
         <span className={css.compactionSep} aria-hidden />
         <span className={css.compactionSummary}>{summary}</span>
       </button>
-      {open && node.summary !== null
-        && <div className={css.compactionBody}><MarkdownText text={node.summary} labels={labels} /></div>}
+      {open && (
+        <div className={css.compactionBody}>
+          {node.summary !== null && <MarkdownText text={node.summary} labels={labels} />}
+          {images.length > 0 && renderMessageImages !== undefined && renderMessageImages({
+            images,
+            align: 'start',
+          })}
+        </div>
+      )}
     </div>
   )
 })

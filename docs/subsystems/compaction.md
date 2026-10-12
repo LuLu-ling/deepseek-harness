@@ -22,6 +22,8 @@ The markers are lock time points, not an exclusive container. An unrelated idle 
 
 These variants are merged inside a `declare module '@deepseek-ai/dsh-session/types'` block, so — unlike the top-level types on the other subsystem pages — they are not pasted as a drift-checked ` ```ts type-equiv ` block (the `verify-type-equiv` extractor matches only top-level declarations by name). The payload table above is the catalog entry; follow the source link for the authoritative fields.
 
+A snapcompact checkpoint uses the same marker pair. `compaction/summary.summary` holds the reading instructions, and the optional `snapcompact` field holds the source text, frame geometry, and attachment ids. The PNG frames are image blocks on the replacement `user/message`, not bytes on the summary event. Old readers ignore the optional field. Automatic `snapcompact` runs only when the saved `context-compaction` method is `snapcompact` and the routed model declares image input; otherwise automatic compaction still summarizes. A manual `/compact snapcompact` does not fall back.
+
 <a id="image-offload"></a>
 ## Image offload
 

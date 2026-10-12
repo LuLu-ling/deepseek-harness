@@ -1,7 +1,7 @@
 {
   "name": "@lulu-ling/dsh-client-ui-settings-session-snapshot",
   "description": "Settings page of worktree snapshots on the dsh web client's Plugins page: how many trees a revert keeps, how often they are swept, and how large an untracked file may be",
-  "version": "0.2.1-alpha.1",
+  "version": "0.2.1-alpha.2",
   "publishConfig": {
     "access": "public"
   },

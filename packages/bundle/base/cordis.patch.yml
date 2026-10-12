@@ -352,6 +352,12 @@
     - id: compaction-basic
       name: '@deepseek-ai/dsh-compaction-basic'
 
+    # Host-plane automatic compaction method. Not inside the isolated
+    # compaction group: the web preset disables that group's host row, and
+    # settings forms only publish an active loader entry.
+    - id: context-compaction
+      name: '@lulu-ling/dsh-compaction-preference'
+
     # Human `/compact`: one useful reduction below the automatic threshold. Backend
     # independent, so it follows whichever compaction service this leaf mounts.
     - id: command-compact

@@ -16,6 +16,7 @@ import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
 import type { CommandId } from '@deepseek-ai/dsh-commands/brand'
 // Type-only: makes the optional sibling service available to `ctx.get()`.
 import type {} from '@deepseek-ai/dsh-compaction-tool-result-pruner'
+import type {} from '@lulu-ling/dsh-compaction-preference'
 import {
   resolveCompactSpec,
   resolveConfig,
@@ -27,6 +28,7 @@ import {
   compactSurfaceRegion,
   selectCompactableRange,
 } from './region.ts'
+import { archiveCompactionSpan, snapcompactFrameCap, snapcompactWireApi } from './snapcompact-pass.ts'
 import { summarizeWithLlm } from './summarizer.ts'
 import type { SummarizationInput, SummaryResult } from './summarizer.ts'
 import type {
@@ -298,7 +300,11 @@ export class BasicCompactionEngine extends CompactionEngine {
       }
       const range = selectCompactableRange(agent.session, measurement, 0)
       if (range === null) return null
-      return this.compactRegion(range.start, range.end, agent, signal)
+      const mode = await this.automaticMode(agent, signal)
+      if (mode === 'snapcompact' && await this.frameCap(agent, range.start, range.end, signal) < 1) return null
+      return mode === 'snapcompact'
+        ? this.replaceRange(range.start, range.end, agent, signal, mode)
+        : this.compactRegion(range.start, range.end, agent, signal)
     }
 
     const info = await this.ctx.llm.resolveModelInfo(target.provider, target.model, signal)
@@ -327,6 +333,9 @@ export class BasicCompactionEngine extends CompactionEngine {
     if (measurement.totalTokens < spec.thresholdTokens) return null
 
     let result: CompactionResult | null = null
+    const mode = this.savedMethod() === 'snapcompact' && info.inputModalities?.includes('image') === true
+      ? 'snapcompact' as const
+      : 'soft' as const
     for (let attempt = 0; attempt <= spec.compactionRetries; attempt += 1) {
       const range = selectCompactableRange(agent.session, measurement, spec.retainTokens)
       if (range === null) {
@@ -335,7 +344,10 @@ export class BasicCompactionEngine extends CompactionEngine {
         /* v8 ignore next -- paired with the defensive post-success branch above. */
         break
       }
-      result = await this.compactRegion(range.start, range.end, agent, signal)
+      if (mode === 'snapcompact' && this.frameCapFrom(agent, range.start, range.end, info) < 1) return result
+      result = mode === 'snapcompact'
+        ? await this.replaceRange(range.start, range.end, agent, signal, mode)
+        : await this.compactRegion(range.start, range.end, agent, signal)
       measurement = meter.measure(agent.session)
       if (measurement.totalTokens < spec.thresholdTokens) return result
     }
@@ -378,14 +390,17 @@ export class BasicCompactionEngine extends CompactionEngine {
    * @param agent - idle agent whose next-turn admission this call reserves.
    * @param signal - cancellation scoped to this compaction request.
    * @param sourceCommandId - initiating command identity for presentation correlation.
+   * @param mode - one-shot method. Omitted and `soft` summarize. `snapcompact` does not fall back.
    * @returns the committed result, or `null` when no safe useful range exists.
    */
   override compactNow(
     agent: Agent,
     signal: AbortSignal,
     sourceCommandId?: CommandId,
+    mode?: 'soft' | 'snapcompact',
   ): Promise<CompactionResult | null> {
     signal.throwIfAborted()
+    const requested = mode ?? 'soft'
     try {
       return agent.runMaintenance(async (agentSignal) => {
         const operationSignal = AbortSignal.any([agentSignal, signal])
@@ -397,21 +412,24 @@ export class BasicCompactionEngine extends CompactionEngine {
             0,
           )
           if (range === null) return null
-          return await compactSurfaceRegion(
-            this.regionDependencies(),
-            agent.session,
+          if (requested === 'snapcompact') {
+            if (!await this.declaresImage(agent, operationSignal)) {
+              throw new ManualCompactionError('summary', 'Snapcompact needs a model that declares image input.')
+            }
+            if (await this.frameCap(agent, range.start, range.end, operationSignal) < 1) {
+              throw new ManualCompactionError('summary', 'Snapcompact cannot fit a frame in the context window.')
+            }
+          }
+          return await this.replaceRange(
             range.start,
             range.end,
             agent,
-            {
-              owner: null,
-              stability: 'selected-span',
-              ...sourceCommandId === undefined ? {} : { sourceCommandId },
-              flush: async () => {
-                await this.ctx.sessions.flush(agent.session)
-              },
-            },
             operationSignal,
+            requested,
+            null,
+            'selected-span',
+            sourceCommandId,
+            async () => { await this.ctx.sessions.flush(agent.session) },
           )
         } catch (error: unknown) {
           if (agentSignal.aborted && operationSignal.reason === agentSignal.reason) {
@@ -426,6 +444,7 @@ export class BasicCompactionEngine extends CompactionEngine {
         }
       })
     } catch (error: unknown) {
+      if (error instanceof ManualCompactionError) throw error
       throw new ManualCompactionError(
         'busy',
         'manual compaction requires an idle agent with no waking queued work',
@@ -434,7 +453,7 @@ export class BasicCompactionEngine extends CompactionEngine {
     }
   }
 
-  /** Bind the effective token meter and dynamically dispatched summarizer hook. */
+  /** Bind the token meter, the summarizer, and the snapcompact archive. */
   private regionDependencies(): Parameters<typeof compactSurfaceRegion>[0] {
     return {
       meter: this.ctx.tokenMeter,
@@ -445,7 +464,90 @@ export class BasicCompactionEngine extends CompactionEngine {
         error,
         ...signal === undefined ? {} : { signal },
       }, () => false),
+      snapcompact: (session, prepared, agent, compactionId, sourceCommandId, signal) => archiveCompactionSpan({
+        ctx: this.ctx,
+        meter: this.ctx.tokenMeter,
+        session,
+        shadowedSeqs: prepared.shadowedSeqs,
+        shadowedRouteTokenCount: prepared.shadowedRouteTokenCount,
+        agent,
+        compactionId,
+        ...sourceCommandId === undefined ? {} : { sourceCommandId },
+        ...signal === undefined ? {} : { signal },
+      }),
     }
+  }
+
+  /** Saved automatic method. An absent preference service stays soft. */
+  private savedMethod(): 'soft' | 'snapcompact' {
+    return this.ctx.get('compactionPreference')?.method === 'snapcompact' ? 'snapcompact' : 'soft'
+  }
+
+  /** Snapcompact only when the saved preference and the routed model both allow it. */
+  private async automaticMode(agent: Agent, signal: AbortSignal): Promise<'soft' | 'snapcompact'> {
+    if (this.savedMethod() !== 'snapcompact') return 'soft'
+    return await this.declaresImage(agent, signal) ? 'snapcompact' : 'soft'
+  }
+
+  /** Positive image declaration. A missing modality list is not support. */
+  private async declaresImage(agent: Agent, signal: AbortSignal): Promise<boolean> {
+    const target = conversationTarget(agent)
+    if (target === undefined) return false
+    const info = await this.ctx.llm.resolveModelInfo(target.provider, target.model, signal)
+    return info.inputModalities?.includes('image') === true
+  }
+
+  /** Frame cap using model info the caller already resolved. */
+  private frameCapFrom(
+    agent: Agent,
+    start: SessionSeq,
+    end: SessionSeq,
+    info: { context?: { contextWindow: number }; defaultMaxTokens?: number },
+  ): number {
+    const target = conversationTarget(agent)
+    if (target === undefined) return 0
+    return snapcompactFrameCap(
+      this.ctx.tokenMeter,
+      agent.session,
+      start,
+      end,
+      info.context?.contextWindow ?? 0,
+      reservedCompletionTokens(agent, info.defaultMaxTokens),
+      { api: snapcompactWireApi(target.provider), id: target.model },
+      target.provider,
+    )
+  }
+
+  /** Frame cap after resolving the routed model's window. */
+  private async frameCap(agent: Agent, start: SessionSeq, end: SessionSeq, signal: AbortSignal): Promise<number> {
+    const target = conversationTarget(agent)
+    if (target === undefined) return 0
+    const info = await this.ctx.llm.resolveModelInfo(target.provider, target.model, signal)
+    return this.frameCapFrom(agent, start, end, info)
+  }
+
+  /**
+   * Run one marker transaction.
+   * @param mode - `snapcompact` archives; `soft` summarizes.
+   */
+  private replaceRange(
+    start: SessionSeq,
+    end: SessionSeq,
+    agent: Agent,
+    signal: AbortSignal | undefined,
+    mode: 'soft' | 'snapcompact',
+    owner: 'current-turn' | null = 'current-turn',
+    stability: 'whole-surface' | 'selected-span' = 'whole-surface',
+    sourceCommandId?: CommandId,
+    flush?: () => Promise<void>,
+  ): Promise<CompactionResult> {
+    return compactSurfaceRegion(this.regionDependencies(), agent.session, start, end, agent, {
+      owner,
+      stability,
+      ...mode === 'snapcompact' ? { mode } : {},
+      ...sourceCommandId === undefined ? {} : { sourceCommandId },
+      ...flush === undefined ? {} : { flush },
+    }, signal)
   }
 }
 

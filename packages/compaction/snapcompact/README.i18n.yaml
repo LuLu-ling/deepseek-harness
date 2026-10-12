@@ -1,0 +1,37 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/compaction/snapcompact/README.md
+/:
+  en: f2b21414138670fd
+  zh: 0ecdc4f72b233cb6
+/lulu-ling-dsh-snapcompact:
+  en: 524268094e158490
+  zh: afa57e8536ecf4ed
+/lulu-ling-dsh-snapcompact/summary:
+  en: 48ea0184ebfca636
+  zh: e0da90984304d12e
+/lulu-ling-dsh-snapcompact/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: a8de62241d29e58f
+/lulu-ling-dsh-snapcompact/use-this-package:
+  en: 1833ab90d1cf06ca
+  zh: f2908dc96d400a98
+/lulu-ling-dsh-snapcompact/understand-the-implementation:
+  en: cfaed9ec6f767a63
+  zh: 9ebaedc4b385b91b
+/lulu-ling-dsh-snapcompact/further-exploration:
+  en: 4c2c7e0e4d51b3aa
+  zh: 785f89da3171628b
+/lulu-ling-dsh-snapcompact/model-experience:
+  en: e0c9cd2144b6435d
+  zh: 21aadc7ec0f249e8
+/lulu-ling-dsh-snapcompact/model-experience/kv-cache-effect:
+  en: e5a9562f2d7a99aa
+  zh: 5a382e0909c9f411
+/lulu-ling-dsh-snapcompact/known-limitations-and-deferred-work:
+  en: b432ccd685145c78
+  zh: 99656e1c3b562e7b
+/lulu-ling-dsh-snapcompact/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: fd71ba5e495ef0ef

@@ -1,7 +1,7 @@
 {
   "name": "@lulu-ling/dsh-session-file-snapshot",
   "description": "Git worktree snapshots used by session revert to roll files back",
-  "version": "0.2.1-alpha.1",
+  "version": "0.2.1-alpha.2",
   "publishConfig": {
     "access": "public"
   },

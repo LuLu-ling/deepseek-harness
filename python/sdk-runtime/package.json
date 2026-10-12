@@ -43,6 +43,8 @@
     "@deepseek-ai/dsh-commands": "workspace:*",
     "@deepseek-ai/dsh-compaction": "workspace:*",
     "@deepseek-ai/dsh-compaction-basic": "workspace:*",
+    "@lulu-ling/dsh-compaction-preference": "workspace:*",
+    "@lulu-ling/dsh-snapcompact": "workspace:*",
     "@deepseek-ai/dsh-compaction-image-offload": "workspace:*",
     "@deepseek-ai/dsh-compaction-tool-result-pruner": "workspace:*",
     "@deepseek-ai/dsh-config-editor": "workspace:*",
