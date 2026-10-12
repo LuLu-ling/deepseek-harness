@@ -136,7 +136,7 @@ These pages cover the sidebar, the Remote calls, and the Host-side manager.
 - [ui-sidebar](../ui-sidebar/README.md) — the panel list the Plugins entry registers into; [ui-layout](../ui-layout/README.md) — the main slot the page occupies.
 - [api-remotes](../../api/remotes/README.md) — the Remote BFF surface behind `pluginManager.*` and `pluginInventory.*`.
 - [plugin-manager](../../boot/plugin-manager/README.md) — the Host-side manager this page drives.
-- [ui-settings-shell](../ui-settings-shell/README.md), [ui-settings-agent-loop](../ui-settings-agent-loop/README.md), [ui-settings-subagent](../ui-settings-subagent/README.md), [ui-settings-web-search](../ui-settings-web-search/README.md), [ui-settings-session-snapshot](../ui-settings-session-snapshot/README.md) — the official configuration pages that register into this page's `plugins.item` slot.
+- [ui-settings-shell](../ui-settings-shell/README.md), [ui-settings-agent-loop](../ui-settings-agent-loop/README.md), [ui-settings-subagent](../ui-settings-subagent/README.md), [ui-settings-web-search](../ui-settings-web-search/README.md), [ui-settings-session-snapshot](../ui-settings-session-snapshot/README.md), [ui-settings-sounds](../ui-settings-sounds/README.md) — the official configuration pages that register into this page's `plugins.item` slot.
 
 -----
 

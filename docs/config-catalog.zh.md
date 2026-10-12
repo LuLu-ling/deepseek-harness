@@ -615,6 +615,30 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-client-ui-settings-models -->
 
+<!-- BEGIN GENERATED config-catalog:@lulu-ling/dsh-client-ui-settings-sounds -->
+<a id="deepseek-aidsh-client-ui-settings-sounds"></a>
+
+## `@lulu-ling/dsh-client-ui-settings-sounds`
+
+- `refs`: `Volatile` (`@deepseek-ai/cordis`)
+- `source`: [`packages/client/ui-settings-sounds/src/index.ts:12`](../packages/client/ui-settings-sounds/src/index.ts)
+
+```ts config-catalog
+/** Live prompt-sound choices. `'none'` is silence. */
+export interface Config {
+  /** Sound after a top-level session stops running. */
+  agent: Volatile<SoundChoice>
+  /** Sound for a new approval request. */
+  permissions: Volatile<SoundChoice>
+  /** Sound for an agent error outside a durable turn position. */
+  errors: Volatile<SoundChoice>
+}
+
+/** A saved prompt-sound field: silence or one playable id. */
+export type SoundChoice = (typeof SOUND_CHOICES)[number]
+```
+<!-- END GENERATED config-catalog:@lulu-ling/dsh-client-ui-settings-sounds -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-client-ui-sidebar-documentpreview -->
 <a id="deepseek-aidsh-client-ui-sidebar-documentpreview"></a>
 
@@ -4505,7 +4529,7 @@ export interface Config {
 
 - `inject`: `sessionRevert`
 - `refs`: `Volatile` (`@deepseek-ai/cordis`)
-- `source`: [`packages/session/session-file-snapshot/src/index.ts:44`](../packages/session/session-file-snapshot/src/index.ts)
+- `source`: [`packages/session/session-file-snapshot/src/index.ts:46`](../packages/session/session-file-snapshot/src/index.ts)
 
 ```ts config-catalog
 /** Plugin config. Every limit has a default and applies live. */

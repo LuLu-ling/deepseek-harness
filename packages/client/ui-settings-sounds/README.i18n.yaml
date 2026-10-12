@@ -1,0 +1,37 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/client/ui-settings-sounds/README.md
+/:
+  en: 2be38469cbfd2c46
+  zh: 2300df2cd1f54dca
+/lulu-ling-dsh-client-ui-settings-sounds:
+  en: 9f3589ecf101e1a4
+  zh: d9646064d25c329f
+/lulu-ling-dsh-client-ui-settings-sounds/summary:
+  en: 2a75da7c4d9ca053
+  zh: 7d625aaa965d8fb0
+/lulu-ling-dsh-client-ui-settings-sounds/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 09388d293f9be9cb
+/lulu-ling-dsh-client-ui-settings-sounds/use-this-package:
+  en: f4f051d5ec6675f7
+  zh: e37fedd9fc4d0082
+/lulu-ling-dsh-client-ui-settings-sounds/understand-the-implementation:
+  en: 4f5845ce1d7716dd
+  zh: 4a4c152cb15abb2a
+/lulu-ling-dsh-client-ui-settings-sounds/further-exploration:
+  en: 7403031526521de1
+  zh: 71a1d8ba1f388fce
+/lulu-ling-dsh-client-ui-settings-sounds/model-experience:
+  en: ef39c8429765e539
+  zh: 898f736efb287efc
+/lulu-ling-dsh-client-ui-settings-sounds/model-experience/kv-cache-effect:
+  en: ca75c51c89c2c9b0
+  zh: 6e1c9a8fdde89577
+/lulu-ling-dsh-client-ui-settings-sounds/known-limitations-and-deferred-work:
+  en: a24dc1528c254eca
+  zh: c70e672e83599c3b
+/lulu-ling-dsh-client-ui-settings-sounds/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: e88aeb617ffb74ea

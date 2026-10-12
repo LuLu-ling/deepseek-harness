@@ -438,6 +438,10 @@
     - id: ui-settings-session-snapshot
       name: '@lulu-ling/dsh-client-ui-settings-session-snapshot'
 
+    # Prompt sounds. The settings namespace is this entry id.
+    - id: sounds
+      name: '@lulu-ling/dsh-client-ui-settings-sounds'
+
     # Plan control: the composer plan seat over the plan projection + /plan channel.
     - id: ui-plan
       name: '@deepseek-ai/dsh-client-ui-plan'
