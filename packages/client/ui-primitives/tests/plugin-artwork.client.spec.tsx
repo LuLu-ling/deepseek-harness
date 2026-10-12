@@ -3,7 +3,8 @@ import { cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   GuideArtworkBrowser, GuideArtworkFiles,
-  PluginArtworkDefault, PluginArtworkLoop, PluginArtworkSearch, PluginArtworkSubagent, PluginArtworkTerminal,
+  PluginArtworkDefault, PluginArtworkLoop, PluginArtworkSearch, PluginArtworkSnapshot,
+  PluginArtworkSounds, PluginArtworkSubagent, PluginArtworkTerminal,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 
 afterEach(cleanup)
@@ -15,6 +16,8 @@ const artworks = {
   PluginArtworkLoop,
   PluginArtworkSubagent,
   PluginArtworkSearch,
+  PluginArtworkSnapshot,
+  PluginArtworkSounds,
   PluginArtworkDefault,
 } as const
 

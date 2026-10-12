@@ -93,6 +93,47 @@ export const PluginArtworkSearch = ({ size = 36, className }: IconProps) => {
   )
 }
 
+/** File-snapshot plugin artwork (a page in front of its retained copy). */
+export const PluginArtworkSnapshot = ({ size = 36, className }: IconProps) => {
+  const uid = useArtworkId()
+  return (
+    <svg width={size} height={size} className={className} viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="8" y="7.5" width="13.6" height="16.4" rx="2" fill={`url(#${uid}a)`} fillOpacity="0.8" />
+      <path d="M16.2 11.2H23.2L28.4 16.4V25.6C28.4 26.7046 27.5046 27.6 26.4 27.6H16.2C15.0954 27.6 14.2 26.7046 14.2 25.6V13.2C14.2 12.0954 15.0954 11.2 16.2 11.2Z" fill={`url(#${uid}b)`} />
+      <path d="M23.2 11.2L28.4 16.4H25.2C24.0954 16.4 23.2 15.5046 23.2 14.4V11.2Z" fill="#CFFAE8" />
+      <defs>
+        <linearGradient id={`${uid}a`} x1="14.8" y1="7.5" x2="14.8" y2="23.9" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#69B9FF" />
+          <stop offset="1" stopColor="#324DE2" />
+        </linearGradient>
+        <linearGradient id={`${uid}b`} x1="21.3" y1="11.2" x2="21.3" y2="27.6" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#45E7A4" />
+          <stop offset="1" stopColor="#05909D" />
+        </linearGradient>
+      </defs>
+    </svg>
+  )
+}
+
+/** Prompt-sound plugin artwork (a speaker and two arcs). */
+export const PluginArtworkSounds = ({ size = 36, className }: IconProps) => {
+  const uid = useArtworkId()
+  return (
+    <svg width={size} height={size} className={className} viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="6.85" y="13.4" width="3.3" height="9.2" rx="1.6" fill={`url(#${uid}a)`} />
+      <path d="M10.15 14.2L17.95 9.2V26.8L10.15 21.8Z" fill={`url(#${uid}a)`} />
+      <path d="M21.75 13.4C24.45 15.1 24.45 20.9 21.75 22.6" stroke="#45E7A4" strokeWidth="2.75" strokeLinecap="round" />
+      <path d="M24.85 10.2C28.75 12.8 28.75 23.2 24.85 25.8" stroke="#658EFF" strokeWidth="2.75" strokeLinecap="round" />
+      <defs>
+        <linearGradient id={`${uid}a`} x1="12.4" y1="9.2" x2="12.4" y2="26.8" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#69B9FF" />
+          <stop offset="1" stopColor="#324DE2" />
+        </linearGradient>
+      </defs>
+    </svg>
+  )
+}
+
 /** Default plugin artwork for plugins without one of their own (connector blocks and a node). */
 export const PluginArtworkDefault = ({ size = 36, className }: IconProps) => {
   const uid = useArtworkId()

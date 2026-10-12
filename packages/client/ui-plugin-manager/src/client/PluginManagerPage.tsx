@@ -16,7 +16,8 @@ import {
   IconChevronRightOutlineRegular, IconCloseOutlineMedium,
   IconDownloadOutlineRegular, IconInfoOutlineRegular, IconPlusOutlineRegular, IconRefreshOutlineRegular, IconTrashOutlineRegular,
   IconWarningOutlineRegular, Input, Menu, MenuItemButton, Modal, pointerModality,
-  PluginArtworkDefault, PluginArtworkLoop, PluginArtworkSearch, PluginArtworkSubagent, PluginArtworkTerminal,
+  PluginArtworkDefault, PluginArtworkLoop, PluginArtworkSearch,
+  PluginArtworkSnapshot, PluginArtworkSounds, PluginArtworkSubagent, PluginArtworkTerminal,
   StateDot, Switch, Tag, TerminalBlock, Toast, Tooltip, useAnchoredPosition, useDismissOnOutsidePointer,
   type IconProps, type StateDotState, type TerminalBlockLabels,
 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -192,6 +193,8 @@ const ITEM_ARTWORK = new Map<string, (props: IconProps) => ReactNode>([
   ['agent-loop', PluginArtworkLoop],
   ['subagent', PluginArtworkSubagent],
   ['web-search', PluginArtworkSearch],
+  ['session-snapshot', PluginArtworkSnapshot],
+  ['sounds', PluginArtworkSounds],
 ])
 
 /** An official plugin's card and page artwork; plugins without their own get the default. */
