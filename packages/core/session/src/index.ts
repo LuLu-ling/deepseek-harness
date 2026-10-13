@@ -1037,6 +1037,15 @@ export class Session {
   }
 
   /**
+   * Whether revert markers omit this seq from {@link deriveMessages}.
+   * @param seq - log seq to test.
+   * @returns true when a staged boundary or a committed range hides it.
+   */
+  omittedByRevert(seq: SessionSeq): boolean {
+    return revertExcludes(this.revertState, seq)
+  }
+
+  /**
    * Project one event with all committed message projections applied.
    * The original durable event remains unchanged.
    * @param event - the event to project.

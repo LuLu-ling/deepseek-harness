@@ -145,13 +145,19 @@ export function selectCompactableRange(
 
   let accumulated = 0
   let keepFromIdx = pricedNodes.length
+  let sawVisible = false
   for (let index = pricedNodes.length - 1; index >= 0; index -= 1) {
+    // A staged or committed revert still occupies surface slots. Those seqs
+    // are not the reader's current position, so they cannot be the retained tail.
+    // oxlint-disable-next-line typescript/no-non-null-assertion
+    if (session.omittedByRevert(surfaceNodes[index]!)) continue
     // oxlint-disable-next-line typescript/no-non-null-assertion
     accumulated += pricedNodes[index]!.tokens
     keepFromIdx = index
+    sawVisible = true
     if (accumulated >= retainTokens) break
   }
-  if (keepFromIdx <= firstIdx) return null
+  if (!sawVisible || keepFromIdx <= firstIdx) return null
 
   while (keepFromIdx > firstIdx) {
     // oxlint-disable-next-line typescript/no-non-null-assertion
@@ -159,6 +165,8 @@ export function selectCompactableRange(
     keepFromIdx -= 1
   }
   if (keepFromIdx <= firstIdx) return null
+  const span = surfaceNodes.slice(firstIdx, keepFromIdx)
+  if (!span.some(seq => !session.omittedByRevert(seq))) return null
 
   // oxlint-disable-next-line typescript/no-non-null-assertion
   const first = surfaceNodes[firstIdx]!
@@ -387,12 +395,12 @@ function prepareCompaction(
     ...selection,
     measurement,
     selectedNodes,
-    // The shadow-price protocol prices replacements with the fixed heuristic
-    // so the O(1) projection fold stays in agreement with its own appends;
-    // retention, range selection, and the shrink comparison read the
-    // route-priced `tokens` instead.
-    shadowedTokenCount: selectedNodes.reduce((total, node) => total + node.heuristicTokens, 0),
-    shadowedRouteTokenCount: selectedNodes.reduce((total, node) => total + node.tokens, 0),
+    shadowedTokenCount: selectedNodes.reduce((total, node) => (
+      session.omittedByRevert(node.seq) ? total : total + node.heuristicTokens
+    ), 0),
+    shadowedRouteTokenCount: selectedNodes.reduce((total, node) => (
+      session.omittedByRevert(node.seq) ? total : total + node.tokens
+    ), 0),
     input: buildSummarizationInput(session, selection.shadowedSeqs),
   }
 }
@@ -575,12 +583,11 @@ function buildSummarizationInput(
   // oxlint-disable-next-line typescript/no-non-null-assertion
   const head = systemHead(session, session.surface.nodes[0]!)
   const system = head === undefined ? null : session.deriveEventMessage(head)
-  const regionMessages = shadowedSeqs
-    // shadowedSeqs are current surface seqs, so each is a valid log index.
-    // Existing Session history read; migration deferred.
-    // oxlint-disable-next-line typescript/no-non-null-assertion, typescript/no-deprecated
-    .map(seq => session.deriveEventMessage(session.eventAt(seq)!))
-    .filter((message): message is Message => message !== null)
+  const regionMessages = shadowedSeqs.flatMap((seq) => {
+    if (session.omittedByRevert(seq)) return []
+    const event = session.eventAt(seq)
+    return event === undefined ? [] : [session.deriveEventMessage(event)]
+  }).filter((message): message is Message => message !== null)
   return {
     ...header?.tools === undefined ? {} : { tools: header.tools },
     messages: system === null ? regionMessages : [system, ...regionMessages],

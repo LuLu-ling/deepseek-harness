@@ -12,9 +12,10 @@
  * with budgets sized to the rail card's clamps — one prompt line, up to three
  * response lines — so a turn shows the same words before and after its events
  * load. The response commits at `turn/end` from a draft of the newest
- * text-bearing assistant message; draft-only applies keep the `turns` array's
+ * text-bearing assistant message; draft-only applies keep `visible`'s
  * identity, so the identity-gated change feed pushes at most three times per
- * turn (boundary, prompt, response).
+ * turn (boundary, prompt, response). A staged or committed revert drops a
+ * turn whose first human prompt is hidden; clearing the stage puts it back.
  *
  * @module @deepseek-ai/dsh-session-turn-outline/projection
  */
@@ -58,7 +59,7 @@ function preview(content: MessageContent, limit: number): string {
   return unread ? `${normalized}…` : normalized
 }
 
-const turnOutlineEntriesSchema: ZodType<readonly TurnOutlineEntry[]> = z.array(z.object({
+const turnOutlineWireSchema: ZodType<readonly TurnOutlineEntry[]> = z.array(z.object({
   turn: z.number().int().nonnegative(),
   seq: z.number().int().nonnegative().transform(SessionSeq),
   prompt: z.string().max(PROMPT_PREVIEW_LIMIT),
@@ -74,22 +75,86 @@ const turnOutlineEntriesSchema: ZodType<readonly TurnOutlineEntry[]> = z.array(z
   }
 })
 
+const promptSeqSchema = z.union([
+  z.number().int().nonnegative().transform(SessionSeq),
+  z.null(),
+]).default(null)
+
 const turnOutlineStateSchema: ZodType<TurnOutlineState> = z.object({
-  turns: turnOutlineEntriesSchema,
+  turns: z.array(z.object({
+    turn: z.number().int().nonnegative(),
+    seq: z.number().int().nonnegative().transform(SessionSeq),
+    prompt: z.string().max(PROMPT_PREVIEW_LIMIT),
+    response: z.string().max(RESPONSE_PREVIEW_LIMIT),
+    promptSeq: promptSeqSchema,
+  }).strict()).superRefine((turns, context) => {
+    let previous = -1
+    for (const entry of turns) {
+      if (entry.turn <= previous) {
+        context.addIssue({ code: 'custom', message: 'turn outline entries must be strictly increasing by turn' })
+        return
+      }
+      previous = entry.turn
+    }
+  }),
   draft: z.string().max(RESPONSE_PREVIEW_LIMIT),
+  staged: z.object({ atSeq: z.number().int().nonnegative() }).strict().nullable().default(null),
+  committed: z.array(z.object({
+    atSeq: z.number().int().nonnegative(),
+    untilSeq: z.number().int().nonnegative(),
+  }).strict()).default([]),
+  visible: turnOutlineWireSchema.default([]),
 }).strict()
 
-const EMPTY_OUTLINE: TurnOutlineState = { turns: [], draft: '' }
+const EMPTY_VISIBLE: readonly TurnOutlineEntry[] = []
+const EMPTY_OUTLINE: TurnOutlineState = {
+  turns: [],
+  draft: '',
+  staged: null,
+  committed: [],
+  visible: EMPTY_VISIBLE,
+}
+
+/** Whether the turn's opening prompt, or its start when no prompt has landed, is hidden. */
+function turnOmitted(state: TurnOutlineState, turn: TurnOutlineState['turns'][number]): boolean {
+  const seq = turn.promptSeq ?? turn.seq
+  if (state.staged !== null && seq >= state.staged.atSeq) return true
+  for (const range of state.committed) {
+    if (seq >= range.atSeq && seq < range.untilSeq) return true
+  }
+  return false
+}
+
+/** Recompute the wire list, reusing the previous array when every served turn is unchanged. */
+function withVisible(state: TurnOutlineState): TurnOutlineState {
+  const visible: TurnOutlineEntry[] = []
+  for (const turn of state.turns) {
+    if (turnOmitted(state, turn)) continue
+    visible.push({ turn: turn.turn, seq: turn.seq, prompt: turn.prompt, response: turn.response })
+  }
+  const previous = state.visible
+  if (previous.length !== visible.length) return { ...state, visible }
+  for (let index = 0; index < visible.length; index += 1) {
+    const prior = previous[index]
+    const next = visible[index]
+    if (prior === undefined || next === undefined
+      || prior.turn !== next.turn || prior.seq !== next.seq
+      || prior.prompt !== next.prompt || prior.response !== next.response) {
+      return { ...state, visible }
+    }
+  }
+  return previous === visible ? state : { ...state, visible: previous }
+}
 
 /** The `turnOutline` unit registered on `ctx.sessionProjections` (exported for the unit spec). */
 export const turnOutlineProjectionDefinition = {
   key: 'turnOutline',
-  stateVersion: 2,
+  stateVersion: 3,
   stateSchema: turnOutlineStateSchema,
   init: () => EMPTY_OUTLINE,
   apply: (state, event) => {
     // Every uninteresting event returns the same reference (Object.is gates
-    // the drive), and draft-only changes keep `turns` identity (the raw-view
+    // the drive), and draft-only changes keep `visible` identity (the raw-view
     // identity gate then keeps the change feed quiet).
     switch (event.type) {
       case 'turn/start': {
@@ -98,40 +163,76 @@ export const turnOutlineProjectionDefinition = {
         // the outline sorted, and a retried turn's previews land on the
         // standing entry.
         if (last !== undefined && event.data.turn <= last.turn) return state
-        return {
-          turns: [...state.turns, { turn: event.data.turn, seq: event.seq, prompt: '', response: '' }],
+        return withVisible({
+          ...state,
+          turns: [...state.turns, {
+            turn: event.data.turn, seq: event.seq, prompt: '', response: '', promptSeq: null,
+          }],
           draft: '',
-        }
+        })
       }
       case 'user/message': {
         // Only the newest turn can still be waiting for its opening human
-        // prompt; later human messages in the same turn (steering) keep the
-        // first preview.
+        // prompt. The first human message owns `promptSeq` even when its
+        // preview is empty; a later one fills that preview only while it is
+        // still empty.
         if (event.data.source.kind !== 'user') return state
         const last = state.turns.at(-1)
-        if (last === undefined || last.prompt !== '') return state
+        if (last === undefined) return state
         const prompt = preview(event.data.content, PROMPT_PREVIEW_LIMIT)
-        if (prompt === '') return state
-        return { turns: [...state.turns.slice(0, -1), { ...last, prompt }], draft: state.draft }
+        if (last.promptSeq === null) {
+          return withVisible({
+            ...state,
+            turns: [...state.turns.slice(0, -1), {
+              ...last,
+              promptSeq: event.seq,
+              ...(prompt === '' ? {} : { prompt }),
+            }],
+          })
+        }
+        if (last.prompt !== '' || prompt === '') return state
+        return withVisible({
+          ...state,
+          turns: [...state.turns.slice(0, -1), { ...last, prompt }],
+        })
       }
       case 'assistant/message': {
         // Newest text-bearing message wins; the buffer commits at turn/end.
         const draft = preview(event.data.message.content, RESPONSE_PREVIEW_LIMIT)
         if (draft === '' || draft === state.draft) return state
-        return { turns: state.turns, draft }
+        return { ...state, draft }
       }
       case 'turn/end': {
         if (state.draft === '') return state
         const last = state.turns.at(-1)
-        if (last === undefined || last.response === state.draft) return { turns: state.turns, draft: '' }
-        return { turns: [...state.turns.slice(0, -1), { ...last, response: state.draft }], draft: '' }
+        if (last === undefined || last.response === state.draft) return { ...state, draft: '' }
+        return withVisible({
+          ...state,
+          turns: [...state.turns.slice(0, -1), { ...last, response: state.draft }],
+          draft: '',
+        })
+      }
+      case 'session/revert/staged': {
+        if (state.staged?.atSeq === event.data.atSeq) return state
+        return withVisible({ ...state, staged: { atSeq: event.data.atSeq } })
+      }
+      case 'session/revert/cleared': {
+        if (state.staged === null) return state
+        return withVisible({ ...state, staged: null })
+      }
+      case 'session/revert/committed': {
+        return withVisible({
+          ...state,
+          staged: null,
+          committed: [...state.committed, { atSeq: event.data.atSeq, untilSeq: event.seq }],
+        })
       }
       default:
         return state
     }
   },
   wire: {
-    viewSchema: turnOutlineEntriesSchema,
-    view: state => state.turns,
+    viewSchema: turnOutlineWireSchema,
+    view: state => state.visible,
   },
 } satisfies ProjectionDefinition<'turnOutline', TurnOutlineState>

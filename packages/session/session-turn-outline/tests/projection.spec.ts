@@ -72,7 +72,7 @@ describe('turn outline projection unit', () => {
     const { ctx, session } = await harness(true)
     expect(outlineOf(ctx, session)).toEqual([])
     expect(ctx.sessionProjections.checkpoint(session).turnOutline)
-      .toEqual({ ver: 2, seq: -1, val: { turns: [], draft: '' } })
+      .toEqual({ ver: 3, seq: -1, val: { turns: [], draft: '', staged: null, committed: [], visible: [] } })
   })
 
   it('folds each turn with its boundary seq, first prompt, and turn-end response', async () => {
@@ -186,7 +186,10 @@ describe('turn outline projection unit', () => {
       time: 0,
       data: { message: { content: blocks } },
     }) as unknown as SessionEvent
-    const base: TurnOutlineState = { turns: [{ turn: 1, seq: SessionSeq(0), prompt: 'p', response: '' }], draft: '' }
+    const base: TurnOutlineState = {
+      turns: [{ turn: 1, seq: SessionSeq(0), prompt: 'p', response: '', promptSeq: SessionSeq(1) }],
+      draft: '', staged: null, committed: [], visible: [],
+    }
     // Non-text blocks are skipped; whitespace-heavy short blocks cross the raw
     // reading bound early, so the collapsed (short) draft still marks the
     // unread remainder with an ellipsis.
@@ -205,16 +208,24 @@ describe('turn outline projection unit', () => {
       time: 0,
       data: { turn: 1, reason: { kind: 'completed' } },
     } as unknown as SessionEvent
-    expect(def.apply({ turns: [], draft: 'orphan' }, end)).toEqual({ turns: [], draft: '' })
+    expect(def.apply({ turns: [], draft: 'orphan', staged: null, committed: [], visible: [] }, end))
+      .toEqual({ turns: [], draft: '', staged: null, committed: [], visible: [] })
     // …and a re-settled identical response keeps the entries' identity.
-    const settled: TurnOutlineState = { turns: [{ turn: 1, seq: SessionSeq(0), prompt: 'p', response: 'done' }], draft: 'done' }
+    const settled: TurnOutlineState = {
+      turns: [{ turn: 1, seq: SessionSeq(0), prompt: 'p', response: 'done', promptSeq: SessionSeq(1) }],
+      draft: 'done', staged: null, committed: [],
+      visible: [{ turn: 1, seq: SessionSeq(0), prompt: 'p', response: 'done' }],
+    }
     const recommitted = def.apply(settled, end)
     expect(recommitted.turns).toBe(settled.turns)
     expect(recommitted.draft).toBe('')
   })
 
   it('skips a boundary that does not advance the turn number (fabricated envelope)', () => {
-    const state: TurnOutlineState = { turns: [{ turn: 2, seq: SessionSeq(5), prompt: 'kept', response: '' }], draft: '' }
+    const state: TurnOutlineState = {
+      turns: [{ turn: 2, seq: SessionSeq(5), prompt: 'kept', response: '', promptSeq: SessionSeq(6) }],
+      draft: '', staged: null, committed: [], visible: [],
+    }
     const regressive = {
       type: 'turn/start',
       seq: SessionSeq(9),
@@ -222,6 +233,23 @@ describe('turn outline projection unit', () => {
       data: { turn: 2 },
     } as unknown as SessionEvent
     expect(turnOutlineProjectionDefinition.apply(state, regressive)).toBe(state)
+  })
+
+  it('omits a turn whose prompt is reverted and restores it when the stage clears', async () => {
+    const { ctx, session } = await harness(true)
+    session.append('turn/start', { turn: 1 })
+    appendPrompt(session, 'keep me')
+    endTurn(session, 1)
+    session.append('turn/start', { turn: 2 })
+    const hidden = appendPrompt(session, 'undo me')
+    endTurn(session, 2)
+    session.append('session/revert/staged', { atSeq: hidden })
+    expect(outlineOf(ctx, session).map(entry => entry.turn)).toEqual([1])
+    session.append('session/revert/cleared', {})
+    expect(outlineOf(ctx, session).map(entry => entry.turn)).toEqual([1, 2])
+    session.append('session/revert/staged', { atSeq: hidden })
+    session.append('session/revert/committed', { atSeq: hidden })
+    expect(outlineOf(ctx, session).map(entry => entry.turn)).toEqual([1])
   })
 
   it('folds turns already in the log when the plugin mounts late (lazy cell build)', async () => {

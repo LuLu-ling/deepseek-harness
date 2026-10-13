@@ -83,7 +83,7 @@ The oldest balanced span is replaced by one summary message and the recent tail 
 
 ### On-demand condensation with /compact
 
-With `dsh-command-compact` mounted, type `/compact` in a chat UI to condense immediately, even below the pressure threshold. The command reports how many history items were condensed and the estimated tokens saved. While the agent is mid-turn or condensation is already running, `/compact` reports that condensation is unavailable; prompts you send while it runs are accepted and start after it finishes.
+With `dsh-command-compact` mounted, type `/compact` in a chat UI to condense immediately, even below the pressure threshold. The command reports how many history items were condensed and the estimated tokens saved. While the agent is mid-turn or condensation is already running, `/compact` reports that condensation is unavailable; prompts you send while it runs are accepted and start after it finishes. A staged undo is committed first. The summary covers history still visible at that position; the retracted turn is neither summarized nor kept as the tail.
 
 ### Trimming oversized tool outputs
 

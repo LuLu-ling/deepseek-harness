@@ -14,6 +14,9 @@ import type { ChatFlowHookContext, ChatViewSlotProps, OpenFileOptions } from '..
 import type { ChatSnapshot } from '../contract/snapshot.ts'
 import { TurnNavigator } from './TurnNavigator.tsx'
 import { mergeTurnRailItems } from './turn-rail-items.ts'
+import {
+  collectRetractedTurns, placeVisibleBeforeRevert, REVERT_CHROME_KINDS, seqHiddenByRevert,
+} from './revert-visibility.ts'
 import { useChatScroll } from './use-chat-scroll.ts'
 import { fileMediaUrl, resolveWorkspacePath } from '@deepseek-ai/dsh-util-workspace-path'
 import css from './ChatView.module.css'
@@ -63,22 +66,51 @@ export function ChatView({
   fileMentions, usePresentation, useProjection, t,
 }: ChatViewSlotProps) {
   const order = useChat(s => s.order)
-  const groupedEntries = useConversation(snapshot => snapshot.views.grouped('chat')?.entries)
-  const entries = useMemo<readonly RenderEntry[]>(() => groupedEntries
-    ?? order.map(key => ({ kind: 'node', key: key as NodeKey })), [groupedEntries, order])
+  const grouped = useConversation(snapshot => snapshot.views.grouped('chat'))
   const nodeStore = useChat(s => s.nodes)
+  const revert = useSession(s => s.revert)
+  const retracted = useMemo(() => collectRetractedTurns(order.flatMap((key) => {
+    const node = nodeStore.get(key)
+    if (node === undefined) return []
+    const location = node.location
+    const turn = location.kind === 'turn' || location.kind === 'step' ? location.turn.turn : undefined
+    return [{ kind: node.kind, anchorSeq: node.anchorSeq, turn }]
+  }), revert), [order, nodeStore, revert])
+  const entries = useMemo<readonly RenderEntry[]>(() => {
+    const base = grouped?.entries ?? order.map(key => ({ kind: 'node', key: key as NodeKey }))
+    return placeVisibleBeforeRevert(base, (entry) => {
+      if (entry.kind === 'group') {
+        const turn = grouped?.groupSource(entry.key).getSnapshot()?.data.turn
+        return turn !== undefined && retracted.has(turn)
+      }
+      const node = nodeStore.get(entry.key)
+      if (node === undefined) return false
+      const location = node.location
+      const turn = location.kind === 'turn' || location.kind === 'step' ? location.turn.turn : undefined
+      if (turn !== undefined && retracted.has(turn) && REVERT_CHROME_KINDS[node.kind] === true) return true
+      return seqHiddenByRevert(revert, node.anchorSeq)
+    })
+  }, [grouped, order, nodeStore, retracted, revert])
   const deferCompletedTurns = usePresentation(policy => policy.collapseTiming === 'next-input')
   const transcriptView = usePresentation(policy => policy.mode)
   // The rail's items are accumulated in the Chat snapshot, so this selector is
   // both the data and its change signal: the array identity moves only when a
   // Turn enters, leaves, or changes its preview.
   const turnNavigationItems = useChat(s => s.navigation.items())
+  const visibleNavigation = useMemo(() => turnNavigationItems.filter((item) => {
+    const node = nodeStore.get(item.anchorKey)
+    if (node === undefined) return true
+    const location = node.location
+    const turn = location.kind === 'turn' || location.kind === 'step' ? location.turn.turn : undefined
+    if (turn !== undefined && retracted.has(turn)) return false
+    return !seqHiddenByRevert(revert, node.anchorSeq)
+  }), [turnNavigationItems, nodeStore, retracted, revert])
   // Host-computed whole-log outline; the merge is view-layer only (the
   // conversation snapshot never carries projection values).
   const turnOutline = useProjection('turnOutline')
   const railItems = useMemo(
-    () => mergeTurnRailItems(turnNavigationItems, turnOutline),
-    [turnNavigationItems, turnOutline],
+    () => mergeTurnRailItems(visibleNavigation, turnOutline),
+    [visibleNavigation, turnOutline],
   )
   const inbox = useProjection('inbox') as InboxState | undefined
   // Workspace root off the session list row: path summaries display relative to it.
@@ -189,7 +221,7 @@ export function ChatView({
     lastIsUser: lastKey !== null && nodeStore.get(lastKey)?.kind === 'user',
     steeringId,
     submissionId: visibleSubmissions.at(-1)?.requestId ?? null,
-    loadedTurns: turnNavigationItems,
+    loadedTurns: visibleNavigation,
     transcriptView,
   })
   const flowContext = useMemo<ChatFlowHookContext>(() => ({ motion: scroll.motion }), [scroll.motion])

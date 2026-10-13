@@ -68,7 +68,7 @@ The shipped `dsh` base mounts it beside the default backend, and the Web client 
 
 ### What happens to the conversation
 
-When the command succeeds, the selected older span is replaced by one summary and the recent history is untouched; the command reports the number of condensed items and estimated tokens. Prompts you submit while condensation runs are accepted and start only after it finishes — they are not lost or reordered. The command lifecycle is recorded in the session log but never enters model history.
+When the command succeeds, the selected older span is replaced by one summary and the recent history is untouched; the command reports the number of condensed items and estimated tokens. Prompts you submit while condensation runs are accepted and start only after it finishes — they are not lost or reordered. The command lifecycle is recorded in the session log but never enters model history. A staged undo is committed first, and the summary is taken from the history still visible there rather than from the retracted turn.
 
 -----
 

@@ -29,6 +29,8 @@ describe('session revert', () => {
     const staged = session.append('session/revert/staged', { atSeq: second })
     expect(staged.ignorable).toBe(true)
     expect(userTexts(session)).toEqual(['one'])
+    expect(session.omittedByRevert(second)).toBe(true)
+    expect(session.omittedByRevert(SessionSeq(second - 1))).toBe(false)
 
     const cleared = session.append('session/revert/cleared', {})
     expect(cleared.ignorable).toBe(true)

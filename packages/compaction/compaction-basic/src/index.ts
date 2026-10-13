@@ -8,7 +8,7 @@ import { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { CompactionEngine, ManualCompactionError } from '@deepseek-ai/dsh-compaction'
 import type { CompactionResult, CompactionTrigger } from '@deepseek-ai/dsh-compaction'
-import type { Session, SessionSeq } from '@deepseek-ai/dsh-session'
+import { foldRevert, type Session, type SessionSeq } from '@deepseek-ai/dsh-session'
 import { CONTEXT_WINDOW_EXCEEDED_CODE } from '@deepseek-ai/dsh-llm'
 import type { LlmCallConfig } from '@deepseek-ai/dsh-llm'
 import { assertNever } from '@deepseek-ai/dsh-util-values'
@@ -16,7 +16,7 @@ import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
 import type { CommandId } from '@deepseek-ai/dsh-commands/brand'
 // Type-only: makes the optional sibling service available to `ctx.get()`.
 import type {} from '@deepseek-ai/dsh-compaction-tool-result-pruner'
-import type {} from '@lulu-ling/dsh-compaction-preference'
+import type {} from '@lulu-ling/dsh-session-revert'
 import {
   resolveCompactSpec,
   resolveConfig,
@@ -104,6 +104,22 @@ const modelPolicy: z<ModelCompactPolicyConfig> = z.object({
   maxOverflowRetries: maxOverflowRetriesSchema,
 })
 
+/**
+ * Freeze a staged undo so the checkpoint appended next stays visible.
+ * The revert service, when mounted, also drops the file-snapshot stage.
+ * @param ctx - context that may provide `sessionRevert`.
+ * @param agent - idle agent whose log receives the commit.
+ */
+async function commitStagedRevert(ctx: Context, agent: Agent): Promise<void> {
+  const staged = foldRevert(agent.session.snapshotEvents()).staged
+  if (staged === null) return
+  const revert = ctx.get('sessionRevert')
+  if (revert !== undefined) {
+    await revert.commit(agent)
+    return
+  }
+  agent.session.append('session/revert/committed', { atSeq: staged.atSeq })
+}
 /**
  * Dependency-light compaction backend using `ctx.tokenMeter` for pressure,
  * retention, cited source events, and summary-convergence pricing.
@@ -406,6 +422,7 @@ export class BasicCompactionEngine extends CompactionEngine {
         const operationSignal = AbortSignal.any([agentSignal, signal])
         try {
           operationSignal.throwIfAborted()
+          await commitStagedRevert(this.ctx, agent)
           const range = selectCompactableRange(
             agent.session,
             this.ctx.tokenMeter.measure(agent.session),

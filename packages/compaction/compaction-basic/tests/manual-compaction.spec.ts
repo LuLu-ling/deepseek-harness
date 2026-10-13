@@ -445,6 +445,32 @@ describe('compactNow transaction and failure classification', () => {
     expect(end?.data).toEqual({ ...correlated, turn: null })
   })
 
+  it('compacts the visible history after an undo instead of the retracted turn', async () => {
+    const { compact } = detachedService()
+    const session = closedConversation(2)
+    const users = session.snapshotEvents().filter(event => event.type === 'user/message')
+    const undone = users[1]!
+    session.append('session/revert/staged', { atSeq: undone.seq })
+    const agent = fakeAgent(session, () => () => undefined)
+
+    const result = await compact.compactNow(agent, SIGNAL)
+
+    expect(result).not.toBeNull()
+    const summaryText = JSON.stringify(compact.calls[0]?.messages)
+    expect(summaryText).toContain(`${PROMPT} 1`)
+    expect(summaryText).not.toContain(`${PROMPT} 2`)
+    expect(summaryText).not.toContain('answer 2')
+    const texts = derivedText(session)
+    expect(texts.some(text => text.includes('checkpoint'))).toBe(true)
+    expect(texts.some(text => text.includes('answer 1'))).toBe(true)
+    expect(texts.some(text => text.includes('answer 2') || text.includes(`${PROMPT} 2`))).toBe(false)
+    const checkpoint = session.snapshotEvents().findLast(event => event.type === 'user/message'
+      && isCompactCheckpointSource(event.data.source))
+    expect(checkpoint).toBeDefined()
+    expect(session.omittedByRevert(checkpoint!.seq)).toBe(false)
+    expect(session.surface.nodes[0]).toBe(checkpoint!.seq)
+  })
+
   it('reports a live unmatched bracket as busy without summarizing', async () => {
     const { compact } = detachedService()
     const session = closedConversation(2)

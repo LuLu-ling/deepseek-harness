@@ -6765,6 +6765,9 @@ importers:
       '@lulu-ling/dsh-compaction-preference':
         specifier: workspace:*
         version: link:../compaction-preference
+      '@lulu-ling/dsh-session-revert':
+        specifier: workspace:*
+        version: link:../../session/session-revert
 
   packages/compaction/compaction-image-offload:
     dependencies:

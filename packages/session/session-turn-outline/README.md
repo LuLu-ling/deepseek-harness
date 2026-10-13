@@ -76,7 +76,7 @@ The unit is a pure fold over committed session events. `turn/start` — not the 
 
 - Uninteresting events return the same state reference, and draft-only changes keep the `turns` array's identity; the registry's two `Object.is` gates then hold the feed to at most three pushes per turn.
 - A `turn/start` that does not advance the turn number is skipped, keeping the outline sorted; a retried boundary's previews then land on the standing entry.
-- The wire view projects `state.turns`; the persisted-cache state schema wraps the wire schema with the draft field.
+- The wire view is `state.visible`: turns whose opening prompt a staged or committed revert hides are omitted, and clearing the stage puts them back. Draft-only changes keep that array's identity. Persisted state also stores the draft, the revert markers, and each turn's prompt seq.
 
 </details>
 

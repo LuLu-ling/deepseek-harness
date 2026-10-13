@@ -119,6 +119,11 @@ export class SessionSnapshotService extends Service {
       },
     }
     ctx.sessionRevert.bindFiles(files)
+    ctx.on('session/event', (session, event) => {
+      if (event.type !== 'session/revert/committed') return
+      this.outers.delete(session.id)
+      this.staged.delete(session.id)
+    })
     ctx.on('agent/pre-step', async (payload, next) => {
       if (payload.step === 1) {
         try {

@@ -242,6 +242,7 @@ export async function archiveCompactionSpan(input: {
   const messages: TranscriptMessage[] = []
   let previous: { kind: 'soft'; summary: string } | { kind: 'snapcompact'; sourceText: string } | undefined
   for (const seq of input.shadowedSeqs) {
+    if (input.session.omittedByRevert(seq)) continue
     // shadowedSeqs are current surface seqs.
     // oxlint-disable-next-line typescript/no-non-null-assertion, typescript/no-deprecated
     const event = input.session.eventAt(seq)!

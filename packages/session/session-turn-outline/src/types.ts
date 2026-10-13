@@ -24,17 +24,39 @@ export interface TurnOutlineEntry {
 }
 
 /**
- * Fold state: the served entries plus the open turn's response draft. The
- * draft buffers the newest text-bearing assistant message until `turn/end`
- * commits it, and the wire view projects only `turns` — draft-only applies
- * keep that array's identity, so the change feed stays quiet between turn
- * boundaries.
+ * One started turn inside the host fold. `promptSeq` is the first human
+ * message even when its preview is empty, so a revert can drop the turn
+ * without putting that seq on the wire.
+ */
+export interface TurnOutlineRecord {
+  /** Host-assigned turn number (the `turn/start` payload). */
+  readonly turn: number
+  /** The turn's `turn/start` event seq. */
+  readonly seq: SessionSeq
+  /** Bounded first-human-prompt preview; `''` until eligible text lands. */
+  readonly prompt: string
+  /** Bounded final-response preview; `''` until the turn ends with assistant text. */
+  readonly response: string
+  /** Seq of the first human `user/message`, or null before one arrives. */
+  readonly promptSeq: SessionSeq | null
+}
+
+/**
+ * Fold state. `visible` is the wire list: turns whose opening prompt a
+ * staged or committed revert hides are omitted, and that array keeps its
+ * identity when only the draft or an already-hidden turn changes.
  */
 export interface TurnOutlineState {
-  /** Started turns in ascending turn order. */
-  readonly turns: readonly TurnOutlineEntry[]
+  /** Started turns in ascending turn order, including ones the wire omits. */
+  readonly turns: readonly TurnOutlineRecord[]
   /** Newest text-bearing assistant preview of the open turn; `''` outside one. */
   readonly draft: string
+  /** Active hide boundary, or null when nothing is staged. */
+  readonly staged: { readonly atSeq: number } | null
+  /** Frozen ranges, exclusive of each commit event. */
+  readonly committed: readonly { readonly atSeq: number; readonly untilSeq: number }[]
+  /** Turns still navigable. Identity is stable across hidden-only updates. */
+  readonly visible: readonly TurnOutlineEntry[]
 }
 
 declare module '@deepseek-ai/dsh-session-projection/types' {
