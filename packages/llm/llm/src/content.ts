@@ -82,7 +82,8 @@ export function textOnlyImageText(ref: ImageAttachmentRef): string {
  * Stable model-facing handle for one exact request image. Identity comes from
  * the occurrence's own durable reference: request versions are prepared per
  * attachment id, so one shared version may serve occurrences whose display
- * names differ.
+ * names differ. An enlarged preview names the factor that maps its coordinates
+ * back onto the source.
  * @param ref - the occurrence's durable normalized attachment.
  * @param version - exact request-image dimensions shown beside the text.
  * @param access - optional path resolved for the current tool execution world.
@@ -93,10 +94,24 @@ export function requestImageHandleText(
   version: Pick<RequestImageAttachment, 'width' | 'height'>,
   access?: ImageAttachmentAccess,
 ): string {
-  const preview = `Image ${imageIdentity(ref)}; request preview ${version.width}x${version.height}px.`
+  const preview = `Image ${imageIdentity(ref)}; request preview ${version.width}x${version.height}px.${enlargementNote(ref, version)}`
   return access === undefined
     ? `${preview} It may be resized or re-encoded; source dimensions, format, and byte size may differ.`
     : preview + normalizedAccessText(ref, access)
+}
+
+/** Coordinate factor for a preview larger than its source; empty when the preview was not enlarged. */
+function enlargementNote(
+  ref: Pick<ImageAttachmentRef, 'width' | 'height'>,
+  version: Pick<RequestImageAttachment, 'width' | 'height'>,
+): string {
+  if (version.width <= ref.width && version.height <= ref.height) return ''
+  const x = (ref.width / version.width).toFixed(2)
+  const y = (ref.height / version.height).toFixed(2)
+  const factor = x === y
+    ? `multiply coordinates by ${x}`
+    : `multiply x coordinates by ${x} and y coordinates by ${y}`
+  return ` Enlarged from ${ref.width}x${ref.height}px; ${factor} to map onto the source.`
 }
 
 /**

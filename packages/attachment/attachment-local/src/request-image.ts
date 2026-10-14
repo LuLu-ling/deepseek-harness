@@ -60,6 +60,7 @@ function descriptor(attachment: ImageAttachmentRef, target: ImageRequestTarget):
     targetWidth: target.width,
     targetHeight: target.height,
     encodedByteBudget: target.maxBytes,
+    ...target.enlarge === true ? { enlarge: true } : {},
     encoding: {
       webpQualities: IMAGE_ENCODING_QUALITIES,
       webpEffort: WEBP_ENCODING_EFFORT,
@@ -87,7 +88,10 @@ export function requestImageVariantId(
 function pipeline(attachment: StoredImageAttachment, target: ImageRequestTarget): Sharp {
   const byWidth = attachment.ref.width >= attachment.ref.height
   return sourcePipeline(attachment)
-    .resize({ ...byWidth ? { width: target.width } : { height: target.height }, withoutEnlargement: true })
+    .resize({
+      ...byWidth ? { width: target.width } : { height: target.height },
+      withoutEnlargement: !enlarges(attachment, target),
+    })
 }
 
 function sourcePipeline(attachment: StoredImageAttachment): Sharp {
@@ -95,12 +99,21 @@ function sourcePipeline(attachment: StoredImageAttachment): Sharp {
   return sharp(attachment.data, { failOn: 'error', limitInputPixels: false }).toColourspace('srgb')
 }
 
+function enlarges(attachment: StoredImageAttachment, target: ImageRequestTarget): boolean {
+  if (target.enlarge !== true) return false
+  const byWidth = attachment.ref.width >= attachment.ref.height
+  const sourceEdge = byWidth ? attachment.ref.width : attachment.ref.height
+  const targetEdge = byWidth ? target.width : target.height
+  return targetEdge > sourceEdge
+}
+
 async function createRequestImage(
   attachment: StoredImageAttachment,
   target: ImageRequestTarget,
   hasAlpha: boolean,
 ): Promise<EncodedRequestImage> {
-  if (target.width >= attachment.ref.width
+  if (!enlarges(attachment, target)
+    && target.width >= attachment.ref.width
     && target.height >= attachment.ref.height
     && attachment.data.byteLength <= target.maxBytes) {
     return {
@@ -172,7 +185,7 @@ async function writeCached(path: string, data: Uint8Array): Promise<void> {
  * Generate or reuse one request image below the local attachment cache root.
  * @param root - absolute attachment cache root; variants use its `request-images` child.
  * @param attachment - verified normalized attachment bytes and reference.
- * @param target - exact route-chosen dimensions and byte target; a target above the source keeps the source size.
+ * @param target - exact route-chosen dimensions and byte target; a target above the source keeps the source size unless `enlarge` is set.
  * @param signal - optional cancellation for cache I/O and image transformation.
  * @returns verified request bytes and deterministic variant identity.
  */

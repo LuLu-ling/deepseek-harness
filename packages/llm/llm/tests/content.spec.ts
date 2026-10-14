@@ -168,6 +168,25 @@ describe('model-facing image access', () => {
     )
   })
 
+  it('names the coordinate factor when the preview is larger than the source', () => {
+    const attachment = {
+      attachmentId: AttachmentId(`sha256:${'b'.repeat(64)}`),
+      mediaType: 'image/png' as const,
+      bytes: 115,
+      width: 16,
+      height: 16,
+    }
+    expect(requestImageHandleText(attachment, { width: 200, height: 200 })).toBe(
+      `Image ${attachment.attachmentId}; request preview 200x200px.`
+      + ' Enlarged from 16x16px; multiply coordinates by 0.08 to map onto the source.'
+      + ' It may be resized or re-encoded; source dimensions, format, and byte size may differ.',
+    )
+    expect(requestImageHandleText(
+      { ...attachment, width: 10, height: 40 },
+      { width: 100, height: 300 },
+    )).toContain('multiply x coordinates by 0.10 and y coordinates by 0.13')
+  })
+
   it('bridges a provider host object only through the mounted filesystem mapping', () => {
     const attachment = image(1).attachment
     const attachments = {

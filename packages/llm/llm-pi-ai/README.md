@@ -88,6 +88,8 @@ Each profile may set a `retryPolicy`; omission uses normal mode with five retrie
 | `maxRequestImageBytes` | `20 MiB` | Aggregate base64 image-payload bound; a request whose retained images exceed it fails with `IMAGE_OFFLOAD_REQUIRED` |
 | `retryPolicy` | normal, 5 retries | Provider-owned retry policy executed by `dsh-llm-retry` |
 
+A source whose shorter side is below 200px is enlarged uniformly until that side reaches 200px, or until a further increase would pass 1568px or the square edge of `requestImagePixelBudget`, whichever is smaller. Aspect ratio is preserved. A strip that cannot reach 200px without passing that cap is sent unchanged.
+
 The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-llm-pi-ai) is the exhaustive source for every accepted field and its JSDoc.
 
 ### Sign in to a provider

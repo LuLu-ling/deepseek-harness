@@ -326,9 +326,10 @@ describe('PiAiAdapter provider routing', () => {
 
     expect(result.finish.kind).toBe('error')
     expect(readImageRequest).toHaveBeenCalledWith(ref, {
-      width: 1,
-      height: 1,
+      width: 200,
+      height: 200,
       maxBytes: 1024 * 1024,
+      enlarge: true,
     }, expect.any(AbortSignal))
     expect(JSON.stringify(server.requests[0])).toContain(MODEL_IMAGE_PATH)
     expect(server.paths).toEqual(['/v1/responses'])

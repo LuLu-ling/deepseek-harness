@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { longEdgeDimensions, requestImageDimensions } from '../src/index.ts'
+import { liftUndersizedImageDimensions, longEdgeDimensions, requestImageDimensions } from '../src/index.ts'
 
 describe('request image dimensions', () => {
   it.each([
@@ -39,5 +39,25 @@ describe('long-edge dimensions', () => {
   it('never enlarges a source at or below the long edge', () => {
     expect(longEdgeDimensions(320, 240, 320)).toEqual({ width: 320, height: 240 })
     expect(longEdgeDimensions(320, 240, 4096)).toEqual({ width: 320, height: 240 })
+  })
+})
+
+describe('undersized image lift', () => {
+  it('lifts a 16x16 icon to the 200px floor', () => {
+    expect(liftUndersizedImageDimensions(16, 16, 200, 1568, 1568)).toEqual({ width: 200, height: 200 })
+  })
+
+  it('lifts a short strip only until the long edge hits the cap', () => {
+    expect(liftUndersizedImageDimensions(16, 512, 200, 1568, 1568)).toEqual({ width: 49, height: 1568 })
+    expect(liftUndersizedImageDimensions(512, 16, 200, 1568, 1568)).toEqual({ width: 1568, height: 49 })
+  })
+
+  it('leaves an image that already meets the floor, and a strip that cannot', () => {
+    expect(liftUndersizedImageDimensions(320, 240, 200, 1568, 1568)).toEqual({ width: 320, height: 240 })
+    expect(liftUndersizedImageDimensions(4, 8000, 200, 1568, 1568)).toEqual({ width: 4, height: 8000 })
+  })
+
+  it('clamps the floor to a cap smaller than the requested minimum', () => {
+    expect(liftUndersizedImageDimensions(1, 1, 200, 10, 10)).toEqual({ width: 10, height: 10 })
   })
 })

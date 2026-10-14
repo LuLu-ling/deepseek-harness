@@ -118,7 +118,7 @@ describe('toPiContext', () => {
 
     expect(readImageRequest).toHaveBeenCalledWith(
       attachment,
-      { width: 1, height: 1, maxBytes: 1024 * 1024 },
+      { width: 200, height: 200, maxBytes: 1024 * 1024, enlarge: true },
       undefined,
     )
     expect(context.messages[0]).toEqual({
@@ -130,6 +130,33 @@ describe('toPiContext', () => {
       ],
       timestamp: 0,
     })
+  })
+
+  it('asks the encoder to enlarge an undersized strip only up to the vision edge cap', async () => {
+    const attachment = {
+      attachmentId: AttachmentId(`sha256:${'d'.repeat(64)}`),
+      mediaType: 'image/png' as const,
+      bytes: 3,
+      width: 16,
+      height: 512,
+    }
+    const readImageRequest = vi.fn((value: ImageAttachmentRef, _target: ImageRequestTarget) => (
+      Promise.resolve(requestVersion(value))
+    ))
+    await toPiContext({
+      provider: 'openai',
+      model: 'gpt-4.1',
+      messages: [createUserMessage({
+        content: [{ type: 'image', attachment }],
+        source: { kind: 'test' },
+      })],
+    }, imageContext(attachmentStore(readImageRequest)))
+
+    expect(readImageRequest).toHaveBeenCalledWith(
+      attachment,
+      { width: 49, height: 1568, maxBytes: 1024 * 1024, enlarge: true },
+      undefined,
+    )
   })
 
   it('converts a tool message with text and images on the image path', async () => {

@@ -137,6 +137,34 @@ describe('local request-image cache', () => {
     expect(enlarged.variantId).not.toBe(thinRequest.variantId)
   })
 
+  it('keeps a target above the source unless enlarge is set', async () => {
+    const attachments = await store()
+    const icon = await attachments.saveImage({ data: await image(16, 16), mediaType: 'image/png' })
+    const target = { width: 200, height: 200, maxBytes: 1024 * 1024 }
+
+    const kept = await attachments.readImageRequest(icon, target)
+    const enlarged = await attachments.readImageRequest(icon, { ...target, enlarge: true })
+
+    expect(kept).toMatchObject({ width: 16, height: 16, mediaType: 'image/png' })
+    expect(enlarged).toMatchObject({ width: 200, height: 200, mediaType: 'image/jpeg' })
+    expect(enlarged.variantId).not.toBe(kept.variantId)
+    await expect(sharp(enlarged.data).metadata()).resolves.toMatchObject({ width: 200, height: 200 })
+  })
+
+  it('enlarges an alpha image on the long edge and preserves the alpha codec', async () => {
+    const attachments = await store()
+    const data = new Uint8Array(await sharp({
+      create: { width: 16, height: 512, channels: 4, background: { r: 10, g: 20, b: 30, alpha: 0.5 } },
+    }).png().toBuffer())
+    const strip = await attachments.saveImage({ data, mediaType: 'image/png' })
+
+    const enlarged = await attachments.readImageRequest(strip, {
+      width: 49, height: 1568, maxBytes: 2 * 1024 * 1024, enlarge: true,
+    })
+
+    expect(enlarged).toMatchObject({ width: 49, height: 1568, mediaType: 'image/webp', hasAlpha: true })
+  })
+
   it('encodes the rounded short edge at the route target', async () => {
     const attachments = await store()
     const attachment = await attachments.saveImage({ data: await image(1224, 1429), mediaType: 'image/png' })

@@ -88,6 +88,8 @@ kind: "package-reference"
 | `maxRequestImageBytes` | `20 MiB` | base64 图片载荷总上限，保留图片超过时请求以 `IMAGE_OFFLOAD_REQUIRED` 失败 |
 | `retryPolicy` | normal，5 次重试 | 由 `dsh-llm-retry` 执行的提供方自有重试策略 |
 
+短边低于 200px 的源图会按比例放大，直到短边达到 200px，或再放大会越过 1568px 与 `requestImagePixelBudget` 正方形边长中的较小者。宽高比保持不变。一条放不到 200px 就会越过该上限的细长图保持原尺寸送出。
+
 生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-llm-pi-ai)是每个受支持字段及其 JSDoc 的穷尽式真源。
 
 ### 登录提供方

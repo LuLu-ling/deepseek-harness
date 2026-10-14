@@ -128,12 +128,14 @@ interface StoredImageAttachment {
 ```ts type-equiv
 /** Deterministic request-image target selected by one exact model route for one attachment. */
 interface ImageRequestTarget {
-  /** Target width in pixels; a target above the source keeps the source width. */
+  /** Target width in pixels. A target above the source keeps the source width unless `enlarge` is set. */
   width: number
-  /** Target height in pixels; a target above the source keeps the source height. */
+  /** Target height in pixels. A target above the source keeps the source height unless `enlarge` is set. */
   height: number
   /** Encoded-byte target before base64 expansion or Files API upload; the smallest quality-ladder output is kept when no quality fits. */
   maxBytes: number
+  /** When set, a target larger than the source is encoded by uniform enlargement instead of keeping the source. */
+  enlarge?: boolean
 }
 ```
 

@@ -16,7 +16,7 @@ import type {
 } from '@deepseek-ai/dsh-attachment'
 import type { Context as PiContext, ImageContent, Message as PiMessage, SystemMessage, TextContent, Tool as PiTool } from '@earendil-works/pi-ai'
 import { toPiAssistant } from './replay.ts'
-import { requestImageDimensions } from '@deepseek-ai/dsh-attachment'
+import { liftUndersizedImageDimensions, REQUEST_IMAGE_MAX_EDGE, REQUEST_IMAGE_MIN_DIMENSION, requestImageDimensions } from '@deepseek-ai/dsh-attachment'
 import { DEFAULT_REQUEST_IMAGE_MAX_BYTES, DEFAULT_REQUEST_IMAGE_PIXEL_BUDGET } from './config.ts'
 
 /** Join the text blocks of a harness message. */
@@ -276,9 +276,26 @@ export interface PiImageRequestBudget {
   maxBytes: number
 }
 
-/** Deterministic request target for one source under the route budgets. */
+/**
+ * Deterministic request target for one source under the route budgets.
+ * Edges below the vision floor are enlarged without crossing the route cap.
+ */
 function requestImageTarget(ref: ImageAttachmentRef, budget: PiImageRequestBudget): ImageRequestTarget {
-  return { ...requestImageDimensions(ref.width, ref.height, budget.maxPixels), maxBytes: budget.maxBytes }
+  const fitted = requestImageDimensions(ref.width, ref.height, budget.maxPixels)
+  const cap = Math.min(REQUEST_IMAGE_MAX_EDGE, Math.max(1, Math.floor(Math.sqrt(budget.maxPixels))))
+  const lifted = liftUndersizedImageDimensions(
+    fitted.width,
+    fitted.height,
+    REQUEST_IMAGE_MIN_DIMENSION,
+    cap,
+    cap,
+  )
+  return {
+    width: lifted.width,
+    height: lifted.height,
+    maxBytes: budget.maxBytes,
+    ...lifted.width > ref.width || lifted.height > ref.height ? { enlarge: true } : {},
+  }
 }
 
 /**
