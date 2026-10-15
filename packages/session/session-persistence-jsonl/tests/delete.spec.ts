@@ -16,7 +16,7 @@ import {
   SessionPersistenceNotFoundError,
 } from '@deepseek-ai/dsh-session-persistence'
 import type { SessionPersistence } from '@deepseek-ai/dsh-session-persistence'
-import JsonlSessionPersistence from '../src/index.ts'
+import * as JsonlSessionPersistence from '../src/index.ts'
 import { sessionDir } from '../src/format.ts'
 
 const dirs: string[] = []
