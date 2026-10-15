@@ -277,10 +277,13 @@ export interface PiImageRequestBudget {
 }
 
 /**
- * Deterministic request target for one source under the route budgets.
+ * Resolve the request target for one source under the route budgets.
  * Edges below the vision floor are enlarged without crossing the route cap.
+ * @param ref - normalized source image.
+ * @param budget - resolved route pixel and byte limits.
+ * @returns dimensions and byte target shared by serialization and screenshot coordinate mapping.
  */
-function requestImageTarget(ref: ImageAttachmentRef, budget: PiImageRequestBudget): ImageRequestTarget {
+export function requestImageTarget(ref: ImageAttachmentRef, budget: PiImageRequestBudget): ImageRequestTarget {
   const fitted = requestImageDimensions(ref.width, ref.height, budget.maxPixels)
   const cap = Math.min(REQUEST_IMAGE_MAX_EDGE, Math.max(1, Math.floor(Math.sqrt(budget.maxPixels))))
   const lifted = liftUndersizedImageDimensions(

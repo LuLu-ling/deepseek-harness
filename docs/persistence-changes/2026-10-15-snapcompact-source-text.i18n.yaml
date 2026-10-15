@@ -1,0 +1,28 @@
+# Bilingual-pair consistency record for 2026-10-15-snapcompact-source-text.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/persistence-changes/2026-10-15-snapcompact-source-text.md
+/:
+  en: 3d5a424ae7d7e46b
+  zh: c22a8e4a62d8cc1a
+/2026-10-15-snapcompact-source-text:
+  en: f3684ceb3e7393a0
+  zh: 8e7b8fb3f1e0ab6e
+/2026-10-15-snapcompact-source-text/summary:
+  en: d8f7fde99c85151d
+  zh: 7fc5b271fbb7c7fd
+/2026-10-15-snapcompact-source-text/table-of-contents:
+  en: 6cf314a069ceb451
+  zh: 9adff678e9ecab3b
+/2026-10-15-snapcompact-source-text/declaration:
+  en: 6907136f28e48c90
+  zh: 02f8298485f3d8e7
+/2026-10-15-snapcompact-source-text/compatibility:
+  en: 50cfa7f2a44cd336
+  zh: 6f6d9598ad03d12b
+/2026-10-15-snapcompact-source-text/verification:
+  en: 7a76c006e50eee87
+  zh: a228f8bcfb8deab8
+/2026-10-15-snapcompact-source-text/dev-note:
+  en: b75c8458928b72b9
+  zh: 003ba4e17b4b5269

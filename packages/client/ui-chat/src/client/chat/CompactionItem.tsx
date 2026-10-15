@@ -2,13 +2,14 @@
 // expandable only when the current window includes its cited summary.
 
 import { memo, useMemo, useState } from 'react'
-import type { RenderMessageImages } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { MessageImageLoader } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import {
   IconApiOutlineRegular,
   IconChevronDownOutlineRegular,
   IconChevronRightOutlineRegular,
   MarkdownText,
 } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ChatViewSlotProps } from '../contract/slots.ts'
 import { markdownLabels } from '../markdown-labels.ts'
 import type { CompactionSummaryNode } from '../contract/snapshot.ts'
@@ -20,8 +21,10 @@ interface CompactionItemProps {
   title?: string
   /** Command settlement text used when structured compaction counts are unavailable. */
   fallbackSummary?: string | null
-  /** Existing message-image renderer. Absent renderers keep the text card. */
-  renderMessageImages?: RenderMessageImages
+  /** Session-authorized loader. Absent callers keep the text card. */
+  loadImage?: MessageImageLoader
+  /** Message-image slot. Absent callers keep the text card. */
+  renderSlot?: PropsRenderSlots<'conversation.chat.message.images'>['renderSlot']
   /** The owning view's locale seat. */
   t: ChatViewSlotProps['t']
 }
@@ -35,7 +38,8 @@ export const CompactionItem = memo(function CompactionItem({
   node,
   title,
   fallbackSummary,
-  renderMessageImages,
+  renderSlot,
+  loadImage,
   t,
 }: CompactionItemProps) {
   const [expanded, setExpanded] = useState(false)
@@ -77,8 +81,9 @@ export const CompactionItem = memo(function CompactionItem({
       {open && (
         <div className={css.compactionBody}>
           {node.summary !== null && <MarkdownText text={node.summary} labels={labels} />}
-          {images.length > 0 && renderMessageImages !== undefined && renderMessageImages({
+          {images.length > 0 && renderSlot !== undefined && loadImage !== undefined && renderSlot('conversation.chat.message.images', {
             images,
+            loadImage,
             align: 'start',
           })}
         </div>

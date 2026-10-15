@@ -10,6 +10,7 @@ import type { PendingSubmission } from '@deepseek-ai/dsh-api-session-controller/
 import {
   Button, IconChevronDownOutlineRegular, MarkdownDelegateProvider, Modal,
 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { isAtOrOutside } from '../contract/group-tree.ts'
 import type { ChatFlowHookContext, ChatViewSlotProps, OpenFileOptions } from '../contract/slots.ts'
 import type { ChatSnapshot } from '../contract/snapshot.ts'
 import { TurnNavigator } from './TurnNavigator.tsx'
@@ -40,13 +41,12 @@ function observedInputs(
   let lastInputTurn: number | undefined
   for (const key of order) {
     const node = nodes.get(key)
-    if (node === undefined || (node.kind !== 'user' && node.kind !== 'steering' && node.kind !== 'turn-trigger')) continue
+    if (node === undefined || !isAtOrOutside(node, 'input')) continue
     if (node.location.kind === 'turn' || node.location.kind === 'step') lastInputTurn = node.location.turn.turn
-    if (node.kind === 'turn-trigger') continue
-    const source = (node.data as { readonly source?: unknown }).source as
-      | { readonly kind?: unknown; readonly rpcId?: unknown }
-      | undefined
-    if (source?.kind === 'user' && typeof source.rpcId === 'string') observed.add(source.rpcId)
+    const data: unknown = node.data
+    const source = typeof data === 'object' && data !== null && 'source' in data ? data.source : undefined
+    if (typeof source === 'object' && source !== null && 'kind' in source && source.kind === 'user'
+      && 'rpcId' in source && typeof source.rpcId === 'string') observed.add(source.rpcId)
   }
   return { rpcIds: observed, lastInputTurn }
 }
@@ -62,11 +62,12 @@ const MOTION_TAIL_MS = 800
  */
 export function ChatView({
   useSession, useChat, useConversation, useSessions, renderSlot,
-  sessionId, openFile, openSkill, openExternalLink, loadOlder, loadThrough, loadImage, inspectCall, chatScroll, forkAt, revertAt,
+  sessionId, openFile, openExternalLink, loadOlder, loadThrough, loadImage, inspectCall, chatScroll, forkAt, revertAt,
   fileMentions, usePresentation, useProjection, t,
 }: ChatViewSlotProps) {
   const order = useChat(s => s.order)
   const grouped = useConversation(snapshot => snapshot.views.grouped('chat'))
+  const groupedEntries = useConversation(snapshot => snapshot.views.grouped('chat')?.entries)
   const nodeStore = useChat(s => s.nodes)
   const revert = useSession(s => s.revert)
   const retracted = useMemo(() => collectRetractedTurns(order.flatMap((key) => {
@@ -77,7 +78,7 @@ export function ChatView({
     return [{ kind: node.kind, anchorSeq: node.anchorSeq, turn }]
   }), revert), [order, nodeStore, revert])
   const entries = useMemo<readonly RenderEntry[]>(() => {
-    const base = grouped?.entries ?? order.map(key => ({ kind: 'node', key: key as NodeKey }))
+    const base = groupedEntries ?? order.map(key => ({ kind: 'node', key: key as NodeKey }))
     return placeVisibleBeforeRevert(base, (entry) => {
       if (entry.kind === 'group') {
         const turn = grouped?.groupSource(entry.key).getSnapshot()?.data.turn
@@ -90,7 +91,7 @@ export function ChatView({
       if (turn !== undefined && retracted.has(turn) && REVERT_CHROME_KINDS[node.kind] === true) return true
       return seqHiddenByRevert(revert, node.anchorSeq)
     })
-  }, [grouped, order, nodeStore, retracted, revert])
+  }, [grouped, groupedEntries, order, nodeStore, retracted, revert])
   const deferCompletedTurns = usePresentation(policy => policy.collapseTiming === 'next-input')
   const transcriptView = usePresentation(policy => policy.mode)
   // The rail's items are accumulated in the Chat snapshot, so this selector is
@@ -255,10 +256,10 @@ export function ChatView({
                 </button>
               </div>
             )}
-            <MarkdownDelegateProvider openExternalLink={openExternalLink} openFile={requestOpenFile} fileImages={fileImages}>
+            <MarkdownDelegateProvider openFile={requestOpenFile} openExternalLink={openExternalLink} fileImages={fileImages}>
               {renderSlot('conversation.chat.flow', {
                 entries, pendingInputs, lastInputTurn, deferCollapse,
-                cwd, openFile: requestOpenFile, openSkill, inspectCall, forkAt, revertAt, loadImage, fileMentions,
+                cwd, openFile: requestOpenFile, inspectCall, forkAt, revertAt, loadImage, fileMentions,
               }, { hookContext: flowContext })}
             </MarkdownDelegateProvider>
             {/* No pending placeholders: questions (ui-user-questions) and approvals
