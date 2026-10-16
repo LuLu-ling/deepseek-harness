@@ -53,6 +53,10 @@ allowBuilds:
   electron-winstaller: false
   # Store-index rewriting only needs msgpackr's portable JavaScript codec.
   msgpackr-extract: false
+  # pnpm 12's preinstall only hardlinks the matching @pnpm/exe over the Node
+  # placeholder. The runtime launches bin/pnpm.mjs, which uses that optional
+  # package directly, so the rewrite is not part of our build.
+  pnpm: false
 
 minimumReleaseAgeExclude:
   # Office engines and their API are qualified and released together by the kit repository.
@@ -100,9 +104,24 @@ minimumReleaseAgeExclude:
   - '@trycua/cua-driver-win32-arm64-msvc@0.28.0'
   - '@trycua/cua-driver-win32-x64-msvc@0.28.0'
   - '@trycua/cua-driver@0.28.0'
-  # The package manager is a workspace devDependency, so its own exact pin
-  # must be exempt from the release-age window that guards other packages.
-  - pnpm@11.28.5
+  # The package manager is a workspace devDependency. pnpm 12 also installs
+  # its platform binaries as optional dependencies, so the exact pin and every
+  # @pnpm/exe package must be exempt from the release-age window.
+  - pnpm@12.14.0
+  - '@pnpm/exe.android-arm64@12.14.0'
+  - '@pnpm/exe.android-x64@12.14.0'
+  - '@pnpm/exe.darwin-arm64@12.14.0'
+  - '@pnpm/exe.darwin-x64@12.14.0'
+  - '@pnpm/exe.freebsd-x64@12.14.0'
+  - '@pnpm/exe.linux-arm64-musl@12.14.0'
+  - '@pnpm/exe.linux-arm64@12.14.0'
+  - '@pnpm/exe.linux-ppc64@12.14.0'
+  - '@pnpm/exe.linux-riscv64@12.14.0'
+  - '@pnpm/exe.linux-s390x@12.14.0'
+  - '@pnpm/exe.linux-x64-musl@12.14.0'
+  - '@pnpm/exe.linux-x64@12.14.0'
+  - '@pnpm/exe.win32-arm64@12.14.0'
+  - '@pnpm/exe.win32-x64@12.14.0'
   # Desktop packaging requires this Electron fingerprint with node-addon-require-builtin 0.1.9.
   - electron@44.7.0
 patchedDependencies:
