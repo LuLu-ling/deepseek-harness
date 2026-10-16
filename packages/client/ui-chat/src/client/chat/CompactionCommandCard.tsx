@@ -2,7 +2,7 @@
 // retain the command's complete settlement text.
 
 import type { MessageImageLoader } from '@deepseek-ai/dsh-client-ui-conversation/client'
-import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsRenderFactories } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ChatViewSlotProps, CommandRowOwnerProps } from '../contract/slots.ts'
 import { CompactionItem } from './CompactionItem.tsx'
 import { GenericCommandCard } from './GenericCommandCard.tsx'
@@ -10,11 +10,11 @@ import { GenericCommandCard } from './GenericCommandCard.tsx'
 interface CompactionCommandCardProps extends CommandRowOwnerProps {
   t: ChatViewSlotProps['t']
   loadImage?: MessageImageLoader
-  renderSlot?: PropsRenderSlots<'conversation.chat.message.images'>['renderSlot']
+  renderFactorySlot: PropsRenderFactories['renderFactorySlot']
 }
 
 /** Render one manual compaction lifecycle without duplicating its checkpoint marker. */
-export function CompactionCommandCard({ node, compaction, loadImage, renderSlot, t }: CompactionCommandCardProps) {
+export function CompactionCommandCard({ node, compaction, loadImage, renderFactorySlot, t }: CompactionCommandCardProps) {
   if (compaction !== undefined) {
     return (
       <CompactionItem
@@ -22,7 +22,7 @@ export function CompactionCommandCard({ node, compaction, loadImage, renderSlot,
         title={t('message.compaction.commandTitle')}
         fallbackSummary={node.outcome?.text ?? null}
         {...loadImage === undefined ? {} : { loadImage }}
-        {...renderSlot === undefined ? {} : { renderSlot }}
+        renderFactorySlot={renderFactorySlot}
         t={t}
       />
     )

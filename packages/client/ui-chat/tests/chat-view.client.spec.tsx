@@ -323,9 +323,9 @@ function HarnessChatNode({ standard, owner, hookContext, usePerformanceUsage, to
     case 'command':
       return <CommandNodeView {...nodeProps} node={owner.node} renderSlot={renderCommandSlot} />
     case 'manual-compaction':
-      return <ManualCompactionNodeView {...nodeProps} node={owner.node} renderSlot={renderAssistantSlot} />
+      return <ManualCompactionNodeView {...nodeProps} node={owner.node} />
     case 'compaction':
-      return <CompactionNodeView {...nodeProps} node={owner.node} renderSlot={renderAssistantSlot} />
+      return <CompactionNodeView {...nodeProps} node={owner.node} />
     case 'model-retry':
       return <RetryNodeView {...nodeProps} node={owner.node} />
     case 'turn-error':

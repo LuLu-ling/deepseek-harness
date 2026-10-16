@@ -1,7 +1,7 @@
 import { memo, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { PendingSubmission } from '@deepseek-ai/dsh-api-session-controller/client'
-import type { PropsRenderFactories, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsRenderFactories } from '@deepseek-ai/dsh-client-ui-slots'
 import type { UserTextFacts } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { JsonBlock, StateDot, TextShimmer } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
@@ -337,15 +337,13 @@ export const ContextMessageNodeView = memo(function ContextMessageNodeView({ nod
 
 /** Automatic compaction keyed Chat renderer. */
 export const CompactionNodeView = memo(function CompactionNodeView({
-  node, loadImage, renderSlot, t,
-}: ChatNodeViewProps<'compaction'> & {
-  renderSlot?: PropsRenderSlots<'conversation.chat.message.images'>['renderSlot']
-}) {
+  node, loadImage, renderFactorySlot, t,
+}: ChatNodeViewProps<'compaction'>) {
   return (
     <CompactionItem
       node={node.data}
       {...loadImage === undefined ? {} : { loadImage }}
-      {...renderSlot === undefined ? {} : { renderSlot }}
+      renderFactorySlot={renderFactorySlot}
       t={t}
     />
   )

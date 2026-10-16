@@ -9,7 +9,7 @@ import {
   IconChevronRightOutlineRegular,
   MarkdownText,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsRenderFactories } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ChatViewSlotProps } from '../contract/slots.ts'
 import { markdownLabels } from '../markdown-labels.ts'
 import type { CompactionSummaryNode } from '../contract/snapshot.ts'
@@ -23,8 +23,8 @@ interface CompactionItemProps {
   fallbackSummary?: string | null
   /** Session-authorized loader. Absent callers keep the text card. */
   loadImage?: MessageImageLoader
-  /** Message-image slot. Absent callers keep the text card. */
-  renderSlot?: PropsRenderSlots<'conversation.chat.message.images'>['renderSlot']
+  /** Shared image gallery. Absent callers keep the text card. */
+  renderFactorySlot?: PropsRenderFactories['renderFactorySlot']
   /** The owning view's locale seat. */
   t: ChatViewSlotProps['t']
 }
@@ -38,7 +38,7 @@ export const CompactionItem = memo(function CompactionItem({
   node,
   title,
   fallbackSummary,
-  renderSlot,
+  renderFactorySlot,
   loadImage,
   t,
 }: CompactionItemProps) {
@@ -81,7 +81,7 @@ export const CompactionItem = memo(function CompactionItem({
       {open && (
         <div className={css.compactionBody}>
           {node.summary !== null && <MarkdownText text={node.summary} labels={labels} />}
-          {images.length > 0 && renderSlot !== undefined && loadImage !== undefined && renderSlot('conversation.chat.message.images', {
+          {images.length > 0 && renderFactorySlot !== undefined && loadImage !== undefined && renderFactorySlot('conversation.images.content', {
             images,
             loadImage,
             align: 'start',
