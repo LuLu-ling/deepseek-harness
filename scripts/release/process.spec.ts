@@ -29,10 +29,12 @@ async function packedTarball(name: string, version: string): Promise<string> {
 }
 
 describe('release process helpers', () => {
-  it('runs pnpm through a JavaScript entry, which spawnSync can start on Windows', () => {
+  it('runs pnpm through an entry spawnSync can start on Windows', () => {
     const [command, ...args] = pnpmCommand()
-    expect(command === 'pnpm' || /node(?:\.exe)?$/iu.test(command)).toBe(true)
-    if (command !== 'pnpm') expect(args[0]).toMatch(/pnpm/u)
+    const node = /node(?:\.exe)?$/iu.test(command)
+    const pnpm = command === 'pnpm' || /(?:^|[\\/])pnpm(?:\.exe)?$/iu.test(command)
+    expect(node || pnpm).toBe(true)
+    if (node) expect(args[0]).toMatch(/pnpm/u)
     expect(capture(command, [...args, '--version'])).toMatch(/^\d+\.\d+\.\d+/u)
   })
 })

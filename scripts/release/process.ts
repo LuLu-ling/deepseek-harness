@@ -4,7 +4,7 @@
  */
 
 import { spawn, spawnSync } from 'node:child_process'
-import { existsSync, realpathSync } from 'node:fs'
+import { closeSync, existsSync, openSync, readSync, realpathSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -105,25 +105,60 @@ export function isEntry(moduleUrl: string): boolean {
 /**
  * Resolve pnpm as a command prefix that spawns without a shell. On Windows the
  * `pnpm` shim is a `.cmd` batch file, which `spawnSync` refuses to run unless a
- * shell interprets it, so the prefix runs pnpm's JavaScript entry with the
- * current Node instead: the entry that launched this script when a run-script
- * did, or the workspace's own pnpm dependency otherwise. pnpm's manifest does
- * not export its bin entry, so the dependency is located on disk rather than
- * through module resolution.
+ * shell interprets it. A `pnpm run` script sets `npm_execpath` to a JavaScript
+ * entry or, since pnpm 11, to the native executable; either can be spawned
+ * directly. Batch shims are ignored. Otherwise the prefix uses the workspace
+ * dependency: its native binary when `install.js` has linked one, or
+ * `bin/pnpm.mjs` / `bin/pnpm.cjs` under the current Node. pnpm's manifest does
+ * not export its bin entry, so the dependency is located on disk.
  * @returns Command and leading arguments to prepend before pnpm's arguments.
  */
 export function pnpmCommand(): readonly [command: string, ...args: string[]] {
   const execpath = process.env.npm_execpath
   // `npm run` and `yarn run` set this too, and handing pnpm's arguments to either would write a different lockfile.
-  if (execpath !== undefined && /[\\/]pnpm[\\/]/u.test(execpath) && /\.[cm]?js$/u.test(execpath)) return [process.execPath, execpath]
+  if (execpath !== undefined && /[\\/]pnpm[\\/]/u.test(execpath) && !/\.(?:cmd|bat)$/iu.test(execpath)) {
+    if (/\.[cm]?js$/iu.test(execpath)) return [process.execPath, execpath]
+    return [execpath]
+  }
   for (let directory = dirname(fileURLToPath(import.meta.url)); ; directory = dirname(directory)) {
-    const entry = join(directory, 'node_modules', 'pnpm', 'bin', 'pnpm.cjs')
-    if (existsSync(entry)) return [process.execPath, entry]
+    const resolved = workspacePnpm(join(directory, 'node_modules', 'pnpm'))
+    if (resolved !== undefined) return resolved
     if (dirname(directory) === directory) break
   }
   // Windows resolves a bare `pnpm` to a batch shim that spawnSync cannot start, so say that rather than fail later.
   if (process.platform === 'win32') {
-    throw new Error('release: cannot locate pnpm\'s JavaScript entry; run this through a pnpm script or install workspace dependencies')
+    throw new Error('release: cannot locate pnpm\'s executable; run this through a pnpm script or install workspace dependencies')
   }
   return ['pnpm']
+}
+
+/**
+ * Locate one installed pnpm package's spawnable entry.
+ * @param packageDir - A `node_modules/pnpm` directory, present or not.
+ * @returns The native binary, or a Node command that loads the JavaScript wrapper.
+ */
+function workspacePnpm(packageDir: string): readonly [command: string, ...args: string[]] | undefined {
+  const native = join(packageDir, process.platform === 'win32' ? 'pnpm.exe' : 'pnpm')
+  // `install.js` replaces a short shell placeholder; until then the file is not spawnable.
+  if (existsSync(native) && !isShellPlaceholder(native)) return [native]
+  for (const filename of ['pnpm.mjs', 'pnpm.cjs']) {
+    const entry = join(packageDir, 'bin', filename)
+    if (existsSync(entry)) return [process.execPath, entry]
+  }
+  return undefined
+}
+
+/**
+ * Whether a pnpm bin file is still the published shell placeholder.
+ * @param path - Candidate native binary path.
+ * @returns True when the file starts with `#`.
+ */
+function isShellPlaceholder(path: string): boolean {
+  const handle = openSync(path, 'r')
+  try {
+    const buffer = Buffer.alloc(1)
+    return readSync(handle, buffer, 0, 1, 0) === 1 && buffer[0] === 0x23
+  } finally {
+    closeSync(handle)
+  }
 }

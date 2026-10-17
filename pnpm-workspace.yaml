@@ -55,7 +55,9 @@ allowBuilds:
   msgpackr-extract: false
   # pnpm 12's preinstall only hardlinks the matching @pnpm/exe over the Node
   # placeholder. The runtime launches bin/pnpm.mjs, which uses that optional
-  # package directly, so the rewrite is not part of our build.
+  # package directly, so the rewrite is not part of our build. Windows cmd
+  # cannot execute the placeholder; scripts/link-windows-pnpm-cli.mjs points
+  # the cmd shims at that Node entry after install.
   pnpm: false
 
 minimumReleaseAgeExclude:

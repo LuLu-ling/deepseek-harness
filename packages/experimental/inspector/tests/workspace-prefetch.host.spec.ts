@@ -14,7 +14,7 @@ function manifest(path: string): Manifest {
 
 it('installs workspace Git hooks without prefetching DevTools', () => {
   const root = manifest('../../../../package.json')
-  expect(root.scripts?.postinstall).toBe('node scripts/install-lefthook.mjs')
+  expect(root.scripts?.postinstall).toBe('node scripts/link-windows-pnpm-cli.mjs && node scripts/install-lefthook.mjs')
   expect(root.scripts?.['prefetch:devtools']).toBeUndefined()
 })
 
