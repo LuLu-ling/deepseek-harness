@@ -389,6 +389,13 @@ Host service backing the generated `ctx.remote.workspace` namespace.
 @Remote('unpinSession') unpinSession(request: WorkspaceUnpinSessionRequest): Promise<WorkspacePinValue>
 
 /**
+ * Delete one idle Session's registry membership and durable artifacts.
+ * @param request - Session identity to delete.
+ * @returns the archive and pin sets after the id is removed.
+ */
+@Remote('deleteSession') deleteSession(request: WorkspaceDeleteSessionRequest): Promise<WorkspaceDeleteSessionValue>
+
+/**
  * Stream a complete Workspace baseline followed by ordered increments. A
  * non-owner receives only the Workspaces and Sessions `allows()` admits.
  * When a delivered Workspace is no longer admitted at its next change or
@@ -580,6 +587,15 @@ pinSession(sessionId: SessionId): Promise<void>
  * @returns resolution after durability.
  */
 unpinSession(sessionId: SessionId): Promise<void>
+
+/**
+ * Drop one idle session from the archive set, the pin set, and every account.
+ * Activity rejects before any write. A failed account write restores the global set.
+ * Does not delete the session log.
+ * @param sessionId - The session to drop from the registry.
+ * @returns resolution after the registry writes.
+ */
+deleteSession(sessionId: SessionId): Promise<void>
 
 /**
  * Resolve by canonical directory path without creating or mutating a

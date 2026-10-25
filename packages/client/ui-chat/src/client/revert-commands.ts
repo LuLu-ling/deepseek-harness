@@ -121,7 +121,9 @@ async function restoreImages(
   if (imageRestores.get(key) !== generation) return
   const files = loaded.filter((file): file is File => file !== undefined)
   if (files.length === 0) return
-  const drafts = conversation.createDrafts(session.sessionId, files)
+  const drafts = conversation.createDrafts(
+    session.sessionId, files, session.getSnapshot().subagent === null,
+  )
   if (imageRestores.get(key) !== generation) {
     conversation.releaseDraftAttachments(drafts)
     return

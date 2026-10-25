@@ -234,5 +234,6 @@ export const turnOutlineProjectionDefinition = {
   wire: {
     viewSchema: turnOutlineWireSchema,
     view: state => state.visible,
+    summary: false,
   },
 } satisfies ProjectionDefinition<'turnOutline', TurnOutlineState>

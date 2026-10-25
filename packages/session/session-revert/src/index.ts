@@ -10,7 +10,7 @@ import { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { SessionSeq, type Session, type SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-session-projection'
-import type { ProjectionDefinition } from '@deepseek-ai/dsh-session-projection'
+import type { ProjectionDefinition, ProjectionHandle } from '@deepseek-ai/dsh-session-projection'
 import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import { z } from 'zod'
 import { applyRevertProjection, EMPTY_REVERT_STATE, humanPromptStarts, revertView } from './fold.ts'
@@ -80,10 +80,19 @@ export class SessionRevertService extends TypertRemoteService {
   private files?: SessionRevertFiles
   /** One file change and its log append at a time, per session. */
   private readonly tails = new Map<SessionId, Promise<void>>()
+  private revertHandle?: ProjectionHandle<SessionRevertState>
+  private released = false
 
   constructor(ctx: Context) {
     super(ctx, 'sessionRevert')
-    ctx.sessionProjections.register(revertProjectionDefinition)
+    const registration = ctx.sessionProjections.register(revertProjectionDefinition)
+    ctx.effect(() => () => {
+      this.released = true
+      this.revertHandle = undefined
+    }, 'sessionRevert.release')
+    void registration.then((handle) => {
+      if (!this.released) this.revertHandle = handle
+    })
     ctx.on('agent/pre-step', async (payload, next) => {
       if (humanPromptStarts(payload.messages)) await this.commit(payload.agent)
       return next()
@@ -199,9 +208,9 @@ export class SessionRevertService extends TypertRemoteService {
 
   /** Read the host fold, materializing it from the log when needed. */
   private state(session: Session): SessionRevertState {
-    const state = this.ctx.sessionProjections.stateOf(session, 'revert')
-    if (state === undefined) throw new Error('revert projection is not registered')
-    return state
+    const handle = this.revertHandle
+    if (handle === undefined) throw new Error('revert projection is not registered')
+    return handle.stateOf(session)
   }
 
   /** Reject a stale agent object that is not the registry's live instance. */

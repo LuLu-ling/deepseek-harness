@@ -1,227 +1,24 @@
 {
   "formatVersion": 2,
   "roots": [
-    {
-      "key": "event:session/revert/cleared",
-      "kind": "event",
-      "event": "session/revert/cleared",
-      "surface": false,
-      "digest": "a895527b566946881523811a1f5d33a9f1052767d1b3773fd5674727d2d31feb",
-      "schema": {
-        "root": 0,
-        "nodes": [
-          {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "data",
-                "type": 1,
-                "optional": false
-              },
-              {
-                "name": "ignorable",
-                "type": 4,
-                "optional": true
-              },
-              {
-                "name": "seq",
-                "type": 5,
-                "optional": false
-              },
-              {
-                "name": "time",
-                "type": 5,
-                "optional": false
-              },
-              {
-                "name": "type",
-                "type": 6,
-                "optional": false
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "object",
-            "properties": [],
-            "indices": [
-              {
-                "key": 2,
-                "value": 3
-              }
-            ]
-          },
-          {
-            "kind": "primitive",
-            "type": "string"
-          },
-          {
-            "kind": "primitive",
-            "type": "never"
-          },
-          {
-            "kind": "literal",
-            "value": true
-          },
-          {
-            "kind": "primitive",
-            "type": "number"
-          },
-          {
-            "kind": "literal",
-            "value": "session/revert/cleared"
-          }
-        ]
-      }
-    },
-    {
-      "key": "event:session/revert/committed",
-      "kind": "event",
-      "event": "session/revert/committed",
-      "surface": false,
-      "digest": "756c26fc06a7f81b49b6d6dc472cff301736b132378894782833decb5a5d867a",
-      "schema": {
-        "root": 0,
-        "nodes": [
-          {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "data",
-                "type": 1,
-                "optional": false
-              },
-              {
-                "name": "ignorable",
-                "type": 3,
-                "optional": true
-              },
-              {
-                "name": "seq",
-                "type": 2,
-                "optional": false
-              },
-              {
-                "name": "time",
-                "type": 2,
-                "optional": false
-              },
-              {
-                "name": "type",
-                "type": 4,
-                "optional": false
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "atSeq",
-                "type": 2,
-                "optional": false
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "primitive",
-            "type": "number"
-          },
-          {
-            "kind": "literal",
-            "value": true
-          },
-          {
-            "kind": "literal",
-            "value": "session/revert/committed"
-          }
-        ]
-      }
-    },
-    {
-      "key": "event:session/revert/staged",
-      "kind": "event",
-      "event": "session/revert/staged",
-      "surface": false,
-      "digest": "4c980477e995c940e10e9ac1c9c8f0910123a5aa93d47b29f1e2f1ba727ec122",
-      "schema": {
-        "root": 0,
-        "nodes": [
-          {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "data",
-                "type": 1,
-                "optional": false
-              },
-              {
-                "name": "ignorable",
-                "type": 4,
-                "optional": true
-              },
-              {
-                "name": "seq",
-                "type": 2,
-                "optional": false
-              },
-              {
-                "name": "time",
-                "type": 2,
-                "optional": false
-              },
-              {
-                "name": "type",
-                "type": 5,
-                "optional": false
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "atSeq",
-                "type": 2,
-                "optional": false
-              },
-              {
-                "name": "prev",
-                "type": 3,
-                "optional": true
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "primitive",
-            "type": "number"
-          },
-          {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "atSeq",
-                "type": 2,
-                "optional": false
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "literal",
-            "value": true
-          },
-          {
-            "kind": "literal",
-            "value": "session/revert/staged"
-          }
-        ]
-      }
-    }
+    {"key":"event:session/revert/cleared","kind":"event","event":"session/revert/cleared","surface":false,"digest":"a895527b566946881523811a1f5d33a9f1052767d1b3773fd5674727d2d31feb"},
+    {"key":"event:session/revert/committed","kind":"event","event":"session/revert/committed","surface":false,"digest":"756c26fc06a7f81b49b6d6dc472cff301736b132378894782833decb5a5d867a"},
+    {"key":"event:session/revert/staged","kind":"event","event":"session/revert/staged","surface":false,"digest":"4c980477e995c940e10e9ac1c9c8f0910123a5aa93d47b29f1e2f1ba727ec122"}
   ],
-  "types": []
+  "types": [],
+  "nodes": {
+    "0657d3ca5ac4e7bf": {"kind":"primitive","type":"number"},
+    "0b53e0c6c7419cad": {"kind":"literal","value":"session/revert/cleared"},
+    "2afbb76fcde488d4": {"kind":"literal","value":"session/revert/staged"},
+    "4c980477e995c940": {"kind":"object","properties":[{"name":"data","type":"9f89ad71f60c58ce","optional":false},{"name":"ignorable","type":"dacf3d5f3e4ff619","optional":true},{"name":"seq","type":"0657d3ca5ac4e7bf","optional":false},{"name":"time","type":"0657d3ca5ac4e7bf","optional":false},{"name":"type","type":"2afbb76fcde488d4","optional":false}],"indices":[]},
+    "4cd48f3e5108bd6e": {"kind":"primitive","type":"string"},
+    "713b183f153d651f": {"kind":"object","properties":[{"name":"atSeq","type":"0657d3ca5ac4e7bf","optional":false}],"indices":[]},
+    "756c26fc06a7f81b": {"kind":"object","properties":[{"name":"data","type":"713b183f153d651f","optional":false},{"name":"ignorable","type":"dacf3d5f3e4ff619","optional":true},{"name":"seq","type":"0657d3ca5ac4e7bf","optional":false},{"name":"time","type":"0657d3ca5ac4e7bf","optional":false},{"name":"type","type":"b6d3a06529a72810","optional":false}],"indices":[]},
+    "9f89ad71f60c58ce": {"kind":"object","properties":[{"name":"atSeq","type":"0657d3ca5ac4e7bf","optional":false},{"name":"prev","type":"713b183f153d651f","optional":true}],"indices":[]},
+    "a895527b56694688": {"kind":"object","properties":[{"name":"data","type":"f0d4d35a2f77027c","optional":false},{"name":"ignorable","type":"dacf3d5f3e4ff619","optional":true},{"name":"seq","type":"0657d3ca5ac4e7bf","optional":false},{"name":"time","type":"0657d3ca5ac4e7bf","optional":false},{"name":"type","type":"0b53e0c6c7419cad","optional":false}],"indices":[]},
+    "b6d3a06529a72810": {"kind":"literal","value":"session/revert/committed"},
+    "dacf3d5f3e4ff619": {"kind":"literal","value":true},
+    "f0d4d35a2f77027c": {"kind":"object","properties":[],"indices":[{"key":"4cd48f3e5108bd6e","value":"fcf427290c6213c2"}]},
+    "fcf427290c6213c2": {"kind":"primitive","type":"never"}
+  }
 }

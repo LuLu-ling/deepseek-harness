@@ -100,7 +100,7 @@ type ManualCompactionErrorCode =
 
 `changed` and `summary` close and persist the failed attempt without a summary replacement; image omissions recorded during recovery remain effective. `commit` may follow partial mutation; `persistence` means the in-memory bracket closed but its flush failed. Cancellation remains separate and throws the exact abort reason after required cleanup.
 
-Pressure compaction runs at the `agent/pre-step` waterfall before request derivation. Once pressure or canonical overflow qualifies, compaction-basic invokes optional [`ctx.toolResultPruner`](../../packages/compaction/compaction-tool-result-pruner/README.md) before range selection, remeasures through `ctx.tokenMeter`, and can advance the surface without a summary. Failed-request recovery runs through `agent/request-error` after the failed step closes and returns a retry action only when the surface replacement generation advances, even if later summary work throws after pruning; cancellation still wins. Region boundaries preserve tool-call/result pairing but not whole turns, allowing early closed steps of one oversized turn to compact. `dsh-compaction-basic` owns thresholds, retained-tail policy, overflow caps, and failure handling.
+Pressure compaction runs at `agent/pre-step` against the committed request header and at `agent/request` against a changed destination before its header is logged. Model-switch summaries retain the previous route unless an explicit summary target is configured; a failed switch preserves that header and any completed reductions. Once pressure or canonical overflow qualifies, compaction-basic invokes optional [`ctx.toolResultPruner`](../../packages/compaction/compaction-tool-result-pruner/README.md) before range selection, remeasures through `ctx.tokenMeter`, and can advance the surface without a summary. Failed-request recovery runs through `agent/request-error` after the failed step closes and returns a retry action only when the surface replacement generation advances, even if later summary work throws after pruning; cancellation still wins. Region boundaries preserve tool-call/result pairing but not whole turns, allowing early closed steps of one oversized turn to compact. `dsh-compaction-basic` owns thresholds, retained-tail policy, overflow caps, and failure handling.
 
 The Service Definition exports `toolPairingBalancedBefore(session, seq)` and `toolPairingBalancedAfter(session, seq)` for the tool-call/result pairing checks before and after a seq. Both validate current surface membership and reject missing seqs and orphan results; the [package contract](../../packages/compaction/compaction/README.md#tool-pairing-boundaries) defines their cache behavior.
 
@@ -177,13 +177,15 @@ abstract compactIfNeeded( agent: CompactionAgentContext, trigger: CompactionTrig
  * @param agent - idle agent whose durable history should be compacted.
  * @param signal - cancellation scoped to this compaction request.
  * @param sourceCommandId - initiating command identity for a manual compaction.
+ * @param mode - one-shot method. Omitted and `soft` summarize. `snapcompact`
+ * archives locally and does not fall back to a summary.
  * @returns the compaction result, or `null` when no safe useful range exists.
  * @throws {@link ManualCompactionError} for expected busy, agent-cancellation,
  * changed-span, summarization/shrink, commit-stage, or persistence failures;
  * an aborted request preserves its exact abort reason. Failed attempts remain
  * visible in the log.
  */
-abstract compactNow( agent: ManualCompactAgentContext, signal: AbortSignal, sourceCommandId?: CommandId, ): Promise<CompactionResult | null>
+abstract compactNow( agent: ManualCompactAgentContext, signal: AbortSignal, sourceCommandId?: CommandId, mode?: 'soft' | 'snapcompact', ): Promise<CompactionResult | null>
 
 /**
  * Forcibly compact a range of surface nodes into a single summary node.
@@ -210,6 +212,14 @@ abstract compactRegion( start: SessionSeq, end: SessionSeq, agent: CompactionAge
 Types: [CommandId](commands.md) · [SessionSeq](session.md)
 
 Source: [`packages/compaction/compaction/src/index.ts`](../../packages/compaction/compaction/src/index.ts)
+
+<a id="ctxcompactionpreference--compactionpreference"></a>
+
+### `ctx.compactionPreference` — `CompactionPreference`
+
+Live preference read by compaction. `method` updates in place when settings save.
+
+Source: [`packages/compaction/compaction-preference/src/index.ts`](../../packages/compaction/compaction-preference/src/index.ts)
 
 <a id="ctxtoolresultpruner--toolresultpruner"></a>
 
