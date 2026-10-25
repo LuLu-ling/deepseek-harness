@@ -80,7 +80,7 @@ export class SessionRevertService extends TypertRemoteService {
   private files?: SessionRevertFiles
   /** One file change and its log append at a time, per session. */
   private readonly tails = new Map<SessionId, Promise<void>>()
-  private revertHandle?: ProjectionHandle<SessionRevertState>
+  private revertHandle: ProjectionHandle<SessionRevertState> | undefined
   private released = false
 
   constructor(ctx: Context) {

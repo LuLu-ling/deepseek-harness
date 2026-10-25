@@ -83,6 +83,7 @@ async function mounted(
     options: {},
     session,
     inbox: createInboxStub(),
+    model: { current: () => undefined, select: () => {} },
     ctx,
     get status(): Agent['status'] { return 'idle' },
     send: () => {},

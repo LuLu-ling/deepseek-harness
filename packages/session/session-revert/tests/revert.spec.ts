@@ -42,6 +42,7 @@ async function harness(id: string): Promise<{ ctx: Context; agent: Agent; sessio
     options: {},
     session,
     inbox: createInboxStub(),
+    model: { current: () => undefined, select: () => {} },
     ctx,
     get status() { return status },
     send: () => {},
@@ -118,6 +119,7 @@ describe('SessionRevertService', () => {
     await ctx.waterfall('agent/pre-step', {
       agent,
       messages: [next],
+      modelSelection: { provider: 'test', model: 'test' },
       turn: 1,
       step: 0,
       signal: new AbortController().signal,
@@ -140,6 +142,7 @@ describe('SessionRevertService', () => {
     await ctx.waterfall('agent/pre-step', {
       agent,
       messages: [injected],
+      modelSelection: { provider: 'test', model: 'test' },
       turn: 1,
       step: 0,
       signal: new AbortController().signal,
@@ -169,6 +172,7 @@ describe('SessionRevertService', () => {
       options: {},
       session,
       inbox: createInboxStub(),
+      model: { current: () => undefined, select: () => {} },
       ctx,
       status: 'idle',
       send: () => {},
@@ -238,6 +242,7 @@ describe('SessionRevertService', () => {
     const stepped = ctx.waterfall('agent/pre-step', {
       agent,
       messages: [next],
+      modelSelection: { provider: 'test', model: 'test' },
       turn: 1,
       step: 0,
       signal: new AbortController().signal,
