@@ -1,40 +1,12 @@
 /**
- * Delete menu row and its confirmation dialog. Busy rows stay disabled.
+ * Delete confirmation dialog. The menu action is a context-menu contribution.
  */
 import { useEffect, useState } from 'react'
-import {
-  Button, IconTrashOutlineRegular, MenuItemButton, Modal,
-} from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
-  DeleteSessionInjected, SessionDeleteConfirmInjected, SessionDeleteConfirmProps,
-  SessionDeleteConfirmRequest, SessionMenuItemProps,
+  SessionDeleteConfirmInjected, SessionDeleteConfirmProps, SessionDeleteConfirmRequest,
 } from '../contract/slots.ts'
 import browserCss from '../rows/WorkspaceBrowser.module.css'
-
-/**
- * Ask to delete this session.
- * @param props - owner share, the delete share, and the menu open state.
- * @returns the row.
- */
-export function DeleteSessionMenuItem({
-  sessionId, useMenuOpenState, useBusy, deleteSession, t,
-}: SessionMenuItemProps<DeleteSessionInjected>) {
-  const [, setMenuOpen] = useMenuOpenState()
-  const busy = useBusy(set => set.has(sessionId))
-  return (
-    <MenuItemButton
-      danger
-      disabled={busy}
-      icon={<IconTrashOutlineRegular size={14} />}
-      onSelect={() => {
-        setMenuOpen(false)
-        deleteSession(sessionId)
-      }}
-    >
-      {t('delete.session')}
-    </MenuItemButton>
-  )
-}
 
 /**
  * Nothing until a confirmation is pending, then one dialog per request.

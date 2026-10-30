@@ -160,7 +160,7 @@ describe('SessionRevertService', () => {
     })
   })
 
-  it('drops the projection when the service fiber stops', async () => {
+  it('refuses to stage after the service fiber stops', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
@@ -187,7 +187,7 @@ describe('SessionRevertService', () => {
     const service = ctx.sessionRevert
     const first = session.append('user/message', prompt('one'), { surfaceOp: 'append' })
     await fiber.dispose()
-    await expect(service.stage(agent, first.seq)).rejects.toThrow('revert projection is not registered')
+    await expect(service.stage(agent, first.seq)).rejects.toThrow('cannot get required service "agents" in inactive context')
   })
 
   it('reads the second stage only after the first file restore appends', async () => {

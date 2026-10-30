@@ -34,7 +34,7 @@ function undoneSession(event: SessionEvent<'user/message'>, running = false): {
   const session: SessionFace = {
     sessionId,
     eventSource: { getSnapshot: () => ({ entries: [{ type: 'event', event }] }) },
-    getSnapshot: () => ({ running, revert: { staged: null, committed: [] } }),
+    getSnapshot: () => ({ running, subagent: null, revert: { staged: null, committed: [] } }),
     revertStage,
     cancel,
   } as never
@@ -51,7 +51,7 @@ function clientFor(
     state?: { getSnapshot: () => { attachmentIds: readonly string[] } }
   },
   drafts?: {
-    createDrafts?: (sessionId: SessionId, files: readonly File[]) => readonly { id: string }[]
+    createDrafts?: (sessionId: SessionId, files: readonly File[], uploadImages: boolean) => readonly { id: string }[]
     releaseDraftAttachment?: (id: string) => void
     releaseDraftAttachments?: (attachments: readonly { id: string }[]) => void
   },
@@ -127,7 +127,9 @@ describe('stageUndo', () => {
     }))
     Object.assign(undone.session, { readAttachment })
     const drafts = [{ id: 'draft-1' }]
-    const createDrafts = vi.fn<(sessionId: SessionId, files: readonly File[]) => readonly { id: string }[]>(() => drafts)
+    const createDrafts = vi.fn<
+      (sessionId: SessionId, files: readonly File[], uploadImages: boolean) => readonly { id: string }[]
+    >(() => drafts)
     const releaseDraftAttachment = vi.fn()
     const addAttachments = vi.fn(() => true)
     const removeAttachment = vi.fn(() => true)
@@ -143,7 +145,7 @@ describe('stageUndo', () => {
     expect(setDraft).not.toHaveBeenCalled()
     expect(shell.focus).toHaveBeenCalledOnce()
     await vi.waitFor(() => { expect(addAttachments).toHaveBeenCalledExactlyOnceWith(['draft-1']) })
-    expect(readAttachment).toHaveBeenCalledExactlyOnceWith('img-1')
+    expect(readAttachment).toHaveBeenCalledExactlyOnceWith(attachment)
     const file = createDrafts.mock.calls[0]?.[1][0]
     expect(file).toBeInstanceOf(File)
     if (!(file instanceof File)) return
@@ -152,7 +154,7 @@ describe('stageUndo', () => {
     expect(file.size).toBe(3)
     expect(removeAttachment).toHaveBeenCalledExactlyOnceWith('old-draft')
     expect(releaseDraftAttachment).toHaveBeenCalledExactlyOnceWith('old-draft')
-    expect(createDrafts).toHaveBeenCalledExactlyOnceWith(sessionId, [file])
+    expect(createDrafts).toHaveBeenCalledExactlyOnceWith(sessionId, [file], true)
   })
 
   it('leaves existing composer attachments when the image cannot be read', async () => {

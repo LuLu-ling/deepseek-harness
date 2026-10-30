@@ -298,16 +298,17 @@ function workspaceNotFound(workspaceId: WorkspaceId): RemoteError<'workspace/not
   )
 }
 
-/** Stop reminders, dispose a live session, then delete cache, spill, and the log. */
+/** Stop tasks that deliver to this Session, dispose a live session, then delete cache, spill, and the log. */
 async function deleteSessionArtifacts(ctx: Context, sessionId: SessionId): Promise<void> {
   const schedule = ctx.get('schedule')
   if (schedule !== undefined) {
-    const rows = (await schedule.catalog()).filter(row => row.sessionId === sessionId)
+    const rows = (await schedule.catalog()).filter(row =>
+      row.target.kind !== 'new' && row.target.sessionId === sessionId)
     for (const row of rows) {
-      if (row.status === 'active') await schedule.delete({ id: row.id, sessionId })
+      if (row.status === 'active') await schedule.edit({ id: row.id, action: 'delete' })
     }
     for (const row of rows) {
-      if (row.status !== 'active') await schedule.delete({ id: row.id, sessionId })
+      if (row.status !== 'active') await schedule.edit({ id: row.id, action: 'delete' })
     }
   }
 

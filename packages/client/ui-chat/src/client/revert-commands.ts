@@ -112,7 +112,7 @@ async function restoreImages(
   imageRestores.set(key, generation)
   const previous = shell.state.getSnapshot().attachmentIds
   const loaded = await Promise.all(images.map(async (image) => {
-    const result = await session.readAttachment(image.attachment.attachmentId)
+    const result = await session.readAttachment(image.attachment)
     if (!result.ok) return undefined
     const ref = result.value.attachment
     const bytes = Uint8Array.from(result.value.data)

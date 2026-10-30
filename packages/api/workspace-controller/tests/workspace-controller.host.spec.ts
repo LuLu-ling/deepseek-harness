@@ -661,6 +661,31 @@ describe('WorkspaceController deleteSession', () => {
     expect(persistence.delete).toHaveBeenCalledWith(session.id)
   })
 
+  it('deletes tasks that deliver to the session and leaves unrelated tasks', async () => {
+    const { controller, ctx } = await harness()
+    const session = ctx.sessions.create(SessionId('idle'))
+    const persistence = ctx.sessionPersistence as { delete: (id: SessionId) => Promise<void> }
+    persistence.delete = vi.fn(async () => undefined)
+    const deleted: string[] = []
+    ctx.provide('schedule', {
+      catalog: () => Promise.resolve([
+        { id: 'active-target', status: 'active', target: { kind: 'session', sessionId: session.id } },
+        { id: 'reserved', status: 'paused', target: { kind: 'new_once', sessionId: session.id, create: {} } },
+        { id: 'other', status: 'active', target: { kind: 'session', sessionId: SessionId('other') } },
+        { id: 'fresh', status: 'ended', target: { kind: 'new', create: {} } },
+      ]),
+      edit: (request: { id: string }) => {
+        deleted.push(request.id)
+        return Promise.resolve({ id: request.id, deleted: true })
+      },
+    } as never)
+
+    await controller.deleteSession({ sessionId: session.id })
+
+    expect(deleted).toEqual(['active-target', 'reserved'])
+  })
+
+
   it('deletes a live session from the controller plugin fiber', async () => {
     const { ctx, root } = await harness({ plugin: true })
     const session = ctx.sessions.create(SessionId('plugin-idle'))
