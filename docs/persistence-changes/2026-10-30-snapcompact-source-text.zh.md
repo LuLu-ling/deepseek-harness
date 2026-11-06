@@ -27,20 +27,20 @@ id: 2026-10-30-snapcompact-source-text
 baseline: false
 changes:
   - root: "event:agent/inbox/spliced"
-    previous: "2026-10-13-liveshare-share-viewer-principal"
-    after: "02e7916b126b6115245aa5b90f4cf6f3ffc94f3fb0ec848befc28a7ca2806578"
+    previous: "2026-10-27-retry-control-input"
+    after: "a17b52015e779aff8315c7899c3fed15510d48289c167fc8fc3147bb1ae66eb8"
     decision: same-version
   - root: "event:developer/message"
-    previous: "2026-10-13-liveshare-share-viewer-principal"
-    after: "64eda283212665493958d082141befbf806cbb8d440c44c9ca14b2803b431537"
+    previous: "2026-10-27-retry-control-input"
+    after: "b4d3e3c404a95aa3f3b4fed253a915f8d2157dfecb639ac47232f8bdee7cbf04"
     decision: same-version
   - root: "event:session/title-llm-request"
-    previous: "2026-10-13-liveshare-share-viewer-principal"
-    after: "ff0560047daa48ac8e4c16414840666351f5163b7e40630a6ab4911852812c9e"
+    previous: "2026-10-27-retry-control-input"
+    after: "d983c887a6f12234c04d6aa3f38c45262f084ce2888ab6721507923c38626af9"
     decision: same-version
   - root: "event:user/message"
-    previous: "2026-10-13-liveshare-share-viewer-principal"
-    after: "90bc8ca2c01b0a4124218bdba3a0acb9ff1e3d934c60e7579842628c2747f2ae"
+    previous: "2026-10-27-retry-control-input"
+    after: "e449487c97cbe8b37c0beaaa8ebde915e392402bfce4f7d7e04679a956d9bdfd"
     decision: same-version
 ```
 
