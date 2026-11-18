@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /** The sounds page as the Plugins page renders it. */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { SettingsFieldState, SettingsFormShell } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -9,8 +9,13 @@ import { SoundsCard, type SoundsCardProps } from '../src/client/SoundsCard.tsx'
 import type { SoundsCardState } from '../src/client/sounds-card-controller.ts'
 import { en, zh } from '../src/client/locales.ts'
 
-afterEach(cleanup)
-
+beforeEach(() => {
+  vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener() {}, removeEventListener() {} })))
+})
+afterEach(() => {
+  cleanup()
+  vi.unstubAllGlobals()
+})
 const settled: SettingsFormShell = {
   available: true, writable: true, dirty: false, invalid: false, saving: false, failed: false,
 }

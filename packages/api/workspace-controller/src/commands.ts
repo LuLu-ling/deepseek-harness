@@ -4,17 +4,18 @@ import { rm } from 'node:fs/promises'
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-agent-loop'
 import type {} from '@deepseek-ai/dsh-api-session-controller'
+import { brandString } from '@deepseek-ai/dsh-brand'
 import type {} from '@deepseek-ai/dsh-schedule'
 import { SessionPersistenceNotFoundError } from '@deepseek-ai/dsh-session-persistence'
 import type {} from '@deepseek-ai/dsh-session-projection-cache'
+import type { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-spill'
 import { sessionDir as spillSessionDir } from '@deepseek-ai/dsh-spill-local'
-import type { SessionId } from '@deepseek-ai/dsh-session'
+import type { WorkspaceId } from '@deepseek-ai/dsh-workspace/types'
 import type { Workspace } from '@deepseek-ai/dsh-workspace'
 import {
   WorkspaceActiveSessionError,
   WorkspaceArchivedSessionPinError,
-  WorkspaceId,
   WorkspaceMoveInvalidError,
   WorkspaceOrderInvalidError,
   WorkspaceUnknownSessionError,
@@ -108,7 +109,7 @@ export class WorkspaceCommands {
    */
   delete(request: WorkspaceDeleteRequest): Promise<WorkspaceDeleteValue> {
     return this.enqueue(async () => {
-      if (!await this.ctx.workspaceRegistry.delete(WorkspaceId(request.workspaceId))) {
+      if (!await this.ctx.workspaceRegistry.delete(brandString<WorkspaceId>(request.workspaceId))) {
         throw workspaceNotFound(request.workspaceId)
       }
       return { deleted: true }
@@ -123,10 +124,10 @@ export class WorkspaceCommands {
   async insertBefore(request: WorkspaceInsertBeforeRequest): Promise<WorkspaceOrderValue> {
     try {
       const workspaceIds = await this.ctx.workspaceRegistry.insertBefore(
-        WorkspaceId(request.workspaceId),
+        brandString<WorkspaceId>(request.workspaceId),
         request.beforeWorkspaceId === undefined
           ? undefined
-          : WorkspaceId(request.beforeWorkspaceId),
+          : brandString<WorkspaceId>(request.beforeWorkspaceId),
       )
       return { workspaceIds: [...workspaceIds] }
     } catch (error) {
@@ -278,7 +279,7 @@ export class WorkspaceCommands {
   }
 
   private requireWorkspace(workspaceId: WorkspaceId): Workspace {
-    const workspace = this.ctx.workspaceRegistry.get(WorkspaceId(workspaceId))
+    const workspace = this.ctx.workspaceRegistry.get(brandString<WorkspaceId>(workspaceId))
     if (workspace === undefined) throw workspaceNotFound(workspaceId)
     return workspace
   }

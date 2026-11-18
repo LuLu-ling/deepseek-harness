@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
-import { AttachmentId, ImageVariantId } from '@deepseek-ai/dsh-attachment'
+import type { AttachmentId, ImageVariantId } from '@deepseek-ai/dsh-attachment'
 import type { AttachmentStore, ImageAttachmentRef, ImageRequestTarget, RequestImageAttachment } from '@deepseek-ai/dsh-attachment'
-import { createToolResultMessage, createUserMessage, ToolCallId, CONTEXT_WINDOW_EXCEEDED_CODE, EMPTY_RESPONSE_CODE, createMessage } from '@deepseek-ai/dsh-llm'
+import { createToolResultMessage, createUserMessage, type ToolCallId, CONTEXT_WINDOW_EXCEEDED_CODE, EMPTY_RESPONSE_CODE, createMessage } from '@deepseek-ai/dsh-llm'
 import type { ContentBlock, StreamChunk } from '@deepseek-ai/dsh-llm'
 import type { AssistantMessage, AssistantMessageEvent, Usage } from '@earendil-works/pi-ai'
 import { transformMessages } from '@earendil-works/pi-ai/api/transform-messages'
@@ -9,6 +9,7 @@ import { getBuiltinModels } from '@earendil-works/pi-ai/providers/all'
 import { toPiContext } from '../src/context.ts'
 import { toPiReplayState } from '../src/replay.ts'
 import { mapStopReason, mapUsage, toStreamChunks } from '../src/stream.ts'
+import { brandString } from '@deepseek-ai/dsh-brand'
 
 function usage(input = 0, output = 0, cacheRead = 0, cacheWrite = 0): Usage {
   return {
@@ -47,7 +48,7 @@ async function collect(stream: AsyncIterable<StreamChunk>): Promise<StreamChunk[
 
 function requestVersion(ref: ImageAttachmentRef): RequestImageAttachment {
   return {
-    variantId: ImageVariantId(`sha256:${'e'.repeat(64)}`),
+    variantId: brandString<ImageVariantId>(`sha256:${'e'.repeat(64)}`),
     attachment: ref,
     data: Uint8Array.of(1, 2, 3),
     mediaType: ref.mediaType,
@@ -98,7 +99,7 @@ describe('toPiContext', () => {
 
   it('resolves durable image references into native pi-ai image content', async () => {
     const attachment = {
-      attachmentId: AttachmentId(`sha256:${'a'.repeat(64)}`),
+      attachmentId: brandString<AttachmentId>(`sha256:${'a'.repeat(64)}`),
       mediaType: 'image/png' as const,
       bytes: 3,
       width: 1,
@@ -134,7 +135,7 @@ describe('toPiContext', () => {
 
   it('asks the encoder to enlarge an undersized strip only up to the vision edge cap', async () => {
     const attachment = {
-      attachmentId: AttachmentId(`sha256:${'d'.repeat(64)}`),
+      attachmentId: brandString<AttachmentId>(`sha256:${'d'.repeat(64)}`),
       mediaType: 'image/png' as const,
       bytes: 3,
       width: 16,
@@ -161,7 +162,7 @@ describe('toPiContext', () => {
 
   it('converts a tool message with text and images on the image path', async () => {
     const attachment = {
-      attachmentId: AttachmentId(`sha256:${'c'.repeat(64)}`),
+      attachmentId: brandString<AttachmentId>(`sha256:${'c'.repeat(64)}`),
       mediaType: 'image/png' as const,
       bytes: 3,
       width: 1,
@@ -174,7 +175,7 @@ describe('toPiContext', () => {
       provider: 'openai',
       model: 'gpt-4.1',
       messages: [createToolResultMessage({
-        callId: ToolCallId('outer'),
+        callId: brandString<ToolCallId>('outer'),
         content: [
           { type: 'text', text: 'before' },
           { type: 'text', text: 'middle' },
@@ -208,7 +209,7 @@ describe('toPiContext', () => {
         content: [{
           type: 'image',
           attachment: {
-            attachmentId: AttachmentId(`sha256:${'b'.repeat(64)}`),
+            attachmentId: brandString<AttachmentId>(`sha256:${'b'.repeat(64)}`),
             mediaType: 'image/png', bytes: 1, width: 1, height: 1,
           },
         }],
@@ -226,7 +227,7 @@ describe('toPiContext', () => {
         content: [
           { type: 'reasoning', text: 'hmm' },
           { type: 'text', text: 'calling' },
-          { type: 'tool-call', id: ToolCallId('c1'), name: 'f', arguments: '{"a":1}' },
+          { type: 'tool-call', id: brandString<ToolCallId>('c1'), name: 'f', arguments: '{"a":1}' },
         ],
         source: { kind: 'model', provider: 'deepseek', model: 'm' },
       })],
@@ -277,7 +278,7 @@ describe('toPiContext', () => {
       model: 'm',
       messages: [createMessage({
         role: 'assistant',
-        content: [{ type: 'tool-call', id: ToolCallId('c1'), name: 'f', arguments: '{broken' }],
+        content: [{ type: 'tool-call', id: brandString<ToolCallId>('c1'), name: 'f', arguments: '{broken' }],
         source: { kind: 'model', provider: 'deepseek', model: 'm' },
       })],
     })
@@ -291,7 +292,7 @@ describe('toPiContext', () => {
       model: 'm',
       messages: [createMessage({
         role: 'assistant',
-        content: [{ type: 'tool-call', id: ToolCallId('c1'), name: 'f', arguments: '[1,2]' }],
+        content: [{ type: 'tool-call', id: brandString<ToolCallId>('c1'), name: 'f', arguments: '[1,2]' }],
         source: { kind: 'model', provider: 'deepseek', model: 'm' },
       })],
     })
@@ -305,11 +306,11 @@ describe('toPiContext', () => {
       messages: [
         createMessage({
           role: 'assistant',
-          content: [{ type: 'tool-call', id: ToolCallId('c1'), name: 'get_weather', arguments: '{}' }],
+          content: [{ type: 'tool-call', id: brandString<ToolCallId>('c1'), name: 'get_weather', arguments: '{}' }],
           source: { kind: 'model', provider: 'deepseek', model: 'm' },
         }),
         createToolResultMessage({
-          callId: ToolCallId('c1'),
+          callId: brandString<ToolCallId>('c1'),
           content: [
             { type: 'text', text: 'Sunny' },
             { type: 'text', text: '!' },
@@ -333,7 +334,7 @@ describe('toPiContext', () => {
     const context = toPiContext({
       provider: 'deepseek',
       model: 'm',
-      messages: [createToolResultMessage({ callId: ToolCallId('zz'), content: [], isError: true })],
+      messages: [createToolResultMessage({ callId: brandString<ToolCallId>('zz'), content: [], isError: true })],
     })
     expect(context.messages[0]).toMatchObject({
       role: 'toolResult',
@@ -357,7 +358,7 @@ describe('toPiContext', () => {
           source: { kind: 'model', provider: 'deepseek', model: 'm' },
         }),
         createToolResultMessage({
-          callId: ToolCallId('c1'),
+          callId: brandString<ToolCallId>('c1'),
           content: [{ type: 'text', text: 'ok' }],
           isError: false,
         }),
@@ -405,7 +406,7 @@ describe('toPiContext', () => {
         content: [
           { type: 'reasoning', text: 'private reasoning' },
           { type: 'text', text: 'calling' },
-          { type: 'tool-call', id: ToolCallId('c1'), name: 'f', arguments: '{"a":1}' },
+          { type: 'tool-call', id: brandString<ToolCallId>('c1'), name: 'f', arguments: '{"a":1}' },
         ],
         source: {
           kind: 'model',
@@ -512,7 +513,7 @@ describe('toPiContext', () => {
         content: [
           { type: 'reasoning', text: 'private reasoning' },
           { type: 'text', text: 'calling' },
-          { type: 'tool-call', id: ToolCallId('c1'), name: 'f', arguments: '{"a":1}' },
+          { type: 'tool-call', id: brandString<ToolCallId>('c1'), name: 'f', arguments: '{"a":1}' },
         ],
         source: {
           kind: 'model',
