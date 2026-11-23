@@ -88,7 +88,7 @@ describe('toPiContext', () => {
     expect(context).toEqual({
       systemPrompt: 'be helpful',
       tools: [{ name: 'f', description: 'F', parameters: { type: 'object', properties: {} } }],
-      messages: [{ role: 'user', content: 'hi', timestamp: 0 }],
+      messages: [{ role: 'user', content: [{ type: 'text', text: 'hi' }], timestamp: 0 }],
     })
   })
 
@@ -119,7 +119,7 @@ describe('toPiContext', () => {
 
     expect(readImageRequest).toHaveBeenCalledWith(
       attachment,
-      { width: 200, height: 200, maxBytes: 1024 * 1024, enlarge: true },
+      { width: 200, height: 200, maxImageBytes: 1024 * 1024, imageTargetBytes: 1024 * 1024, enlarge: true },
       undefined,
     )
     expect(context.messages[0]).toEqual({
@@ -155,7 +155,7 @@ describe('toPiContext', () => {
 
     expect(readImageRequest).toHaveBeenCalledWith(
       attachment,
-      { width: 49, height: 1568, maxBytes: 1024 * 1024, enlarge: true },
+      { width: 49, height: 1568, maxImageBytes: 1024 * 1024, imageTargetBytes: 1024 * 1024, enlarge: true },
       undefined,
     )
   })
@@ -324,7 +324,7 @@ describe('toPiContext', () => {
       role: 'toolResult',
       toolCallId: 'c1',
       toolName: 'get_weather',
-      content: [{ type: 'text', text: 'Sunny!' }],
+      content: [{ type: 'text', text: 'Sunny' }, { type: 'text', text: '!' }],
       isError: false,
       timestamp: 0,
     })

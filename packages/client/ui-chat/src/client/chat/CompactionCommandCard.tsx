@@ -4,21 +4,23 @@
 import type { MessageImageLoader } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { PropsRenderFactories } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ChatViewSlotProps, CommandRowOwnerProps } from '../contract/slots.ts'
-import { CompactionItem } from './CompactionItem.tsx'
+import { CompactionItem, type CompactionRowInjected } from './CompactionItem.tsx'
 import { GenericCommandCard } from './GenericCommandCard.tsx'
 
 interface CompactionCommandCardProps extends CommandRowOwnerProps {
+  openCompaction: CompactionRowInjected['openCompaction'] | undefined
   t: ChatViewSlotProps['t']
   loadImage?: MessageImageLoader
   renderFactorySlot: PropsRenderFactories['renderFactorySlot']
 }
 
 /** Render one manual compaction lifecycle without duplicating its checkpoint marker. */
-export function CompactionCommandCard({ node, compaction, loadImage, renderFactorySlot, t }: CompactionCommandCardProps) {
+export function CompactionCommandCard({ node, compaction, loadImage, renderFactorySlot, openCompaction, t }: CompactionCommandCardProps) {
   if (compaction !== undefined) {
     return (
       <CompactionItem
         node={compaction}
+        openCompaction={openCompaction}
         title={t('message.compaction.commandTitle')}
         fallbackSummary={node.outcome?.text ?? null}
         {...loadImage === undefined ? {} : { loadImage }}

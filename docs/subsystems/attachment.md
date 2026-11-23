@@ -134,12 +134,14 @@ interface StoredImageAttachment {
 ```ts type-equiv
 /** Deterministic request-image target selected by one exact model route for one attachment. */
 interface ImageRequestTarget {
-  /** Target width in pixels. A target above the source keeps the source width unless `enlarge` is set. */
+  /** Maximum request width in pixels; byte-limit enforcement can produce a smaller image. A target above the source keeps the source width unless `enlarge` is set. */
   width: number
-  /** Target height in pixels. A target above the source keeps the source height unless `enlarge` is set. */
+  /** Maximum request height in pixels; byte-limit enforcement can produce a smaller image. A target above the source keeps the source height unless `enlarge` is set. */
   height: number
-  /** Encoded-byte target before base64 expansion or Files API upload; the smallest quality-ladder output is kept when no quality fits. */
-  maxBytes: number
+  /** Hard encoded-byte limit before base64 expansion or Files API upload; successful results never exceed it. */
+  maxImageBytes: number
+  /** Preferred encoded-byte target, no greater than maxImageBytes; exceeding only this target does not reduce resolution. */
+  imageTargetBytes: number
   /** When set, a target larger than the source is encoded by uniform enlargement instead of keeping the source. */
   enlarge?: boolean
 }
@@ -301,9 +303,9 @@ fileHostPath(ref: FileAttachmentRef): string | undefined
 /**
  * Generate or read one deterministic model-request version from the stored normalized image.
  * @param ref - durable provider-independent normalized attachment reference.
- * @param target - route-chosen dimensions and byte target; an unmet byte target yields the smallest ladder output.
+ * @param target - route-chosen maximum dimensions, hard byte limit, and preferred byte target.
  * @param signal - optional cancellation.
- * @returns request bytes and the cache/upload identity covering every transform input.
+ * @returns request bytes within the hard limit, actual encoded dimensions, and a cache/upload identity covering every transform input.
  */
 readImageRequest( ref: ImageAttachmentRef, target: ImageRequestTarget, signal?: AbortSignal, ): Promise<RequestImageAttachment>
 ```

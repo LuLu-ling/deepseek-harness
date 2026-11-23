@@ -608,6 +608,8 @@ describe('compactNow transaction and failure classification', () => {
     const { compact, flushes } = detachedService()
     const session = closedConversation(2)
     const gate = deferred()
+    const entered = deferred()
+    compact.duringSummary = entered.resolve
     compact.gate = gate.promise
     let released = 0
     const agent = fakeAgent(session, () => () => { released += 1 })
@@ -615,7 +617,7 @@ describe('compactNow transaction and failure classification', () => {
     const generation = session.surface.replaceGeneration
 
     const running = compact.compactNow(agent, SIGNAL)
-    await Promise.resolve()
+    await entered.promise
     expect(compact.calls).toHaveLength(1)
 
     gate.resolve()
@@ -761,6 +763,7 @@ describe('compactNow transaction and failure classification', () => {
 
     expect(result).not.toBeNull()
     expect(session.snapshotEvents().some(event => event.type === 'turn/start')).toBe(false)
+    expect(session.snapshotEvents().some(event => event.type === 'system/message')).toBe(false)
     expect(session.snapshotEvents().find(event => event.type === 'compaction/start')?.data)
       .toEqual({ compactionId: result?.compactionId, turn: null })
   })
