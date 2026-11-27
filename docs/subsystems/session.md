@@ -170,6 +170,28 @@ interface SessionEventMap {
    * so tolerating concurrent writers needs a signal beyond the log.
    */
   'session/end-seed': { inherited?: true }
+  /**
+   * Hides the user message at `atSeq` and every later event until clear or commit.
+   * `prev` is the staged boundary this one replaced. Appended with `ignorable: true`,
+   * so a harness that does not know this type opens the log and shows every message.
+   * A harness that knows it still hides the range.
+   */
+  'session/revert/staged': {
+    atSeq: SessionSeq
+    prev?: { atSeq: SessionSeq }
+  }
+  /**
+   * Drops the active staged boundary. Committed ranges stay hidden.
+   * Appended with `ignorable: true`. An older harness opens the log and leaves
+   * the stage in place.
+   */
+  'session/revert/cleared': Record<string, never>
+  /**
+   * Freezes the staged boundary. Events with `seq >= atSeq` and `seq <` this
+   * event stay out of model context, and the stage is cleared. Appended with
+   * `ignorable: true`. An older harness opens the log and keeps those messages visible.
+   */
+  'session/revert/committed': { atSeq: SessionSeq }
 }
 ```
 
@@ -684,8 +706,9 @@ declare class Session {
    * {@link deriveEventMessage}, with logged message projections applied
    * without changing node membership or message identity.
    *
-   * CACHED: pure tail growth costs O(new nodes); a replacement or message projection
-   * ({@link SessionSurface.contentGeneration}) rebuilds. The returned array is
+   * CACHED: pure tail growth costs O(new nodes); a replacement, message projection
+   * ({@link SessionSurface.contentGeneration}), or revert marker rebuilds. A staged
+   * or committed revert omits the hidden seqs. The returned array is
    * a fresh snapshot per call (later appends never grow an array a caller
    * already holds); the `Message` objects in it are SHARED and **deep-frozen**.
    * Unchanged content reuses frozen event data; projected blocks are frozen
@@ -693,6 +716,17 @@ declare class Session {
    * @returns a fresh array of the shared, frozen derived history.
    */
   deriveMessages(): Message[];
+  /**
+   * Whether revert markers omit this seq from {@link deriveMessages}.
+   * @param seq - log seq to test.
+   * @returns true when a staged boundary or a committed range hides it.
+   */
+  omittedByRevert(seq: SessionSeq): boolean;
+  /**
+   * The open staged revert boundary, read from the fold kept with the log.
+   * @returns the stage, or null when nothing is staged.
+   */
+  stagedRevert(): RevertStage | null;
   /**
    * Project one event with all committed message projections applied.
    * The original durable event remains unchanged.
@@ -1123,8 +1157,9 @@ Source: [`packages/session/session-log-deepseek/src/index.ts`](../../packages/se
 /**
  * Attach worktree restore. The snapshot plugin calls this once it is mounted.
  * @param files - capture and restore callbacks.
+ * @returns a disposer that detaches `files` unless a later binding replaced them.
  */
-bindFiles(files: SessionRevertFiles): void
+bindFiles(files: SessionRevertFiles): () => void
 
 /**
  * Hide `atSeq` and every later event.
@@ -1151,7 +1186,7 @@ bindFiles(files: SessionRevertFiles): void
 /**
  * Freeze the staged boundary. No-op when nothing is staged.
  * Waits until an in-flight stage or clear for this session has appended.
- * Called before a human prompt is logged, and by redo's full restore path only through clear.
+ * Called before a step logs new input, and before manual compaction.
  * @param agent - live agent.
  * @returns whether a stage was frozen.
  */
@@ -1349,16 +1384,19 @@ restore(directory: string, snapshot: SnapshotId): Promise<void>
 diff(directory: string, from: SnapshotId, to: SnapshotId): Promise<FileDiff[]>
 
 /**
- * Remember the snapshot that belongs to one turn. The pre-step hook calls this.
+ * Remember the snapshot that belongs to one turn, or to one later step of it.
+ * The pre-step hook calls this.
  * @param sessionId - session whose turn just opened.
  * @param turn - turn number from `turn/start`.
- * @param snapshot - tree captured before that turn wrote files.
+ * @param snapshot - tree captured before that turn, or that step, wrote files.
+ * @param step - step that admitted a human message after the first. Omitted means the turn.
  */
-rememberTurn(sessionId: SessionId, turn: number, snapshot: SnapshotId): void
+rememberTurn(sessionId: SessionId, turn: number, snapshot: SnapshotId, step?: number): void
 
 /**
  * Drop snapshot trees that exceed the configured count, disk, or age limits.
- * A tree an open revert is using stays. A remembered turn does not.
+ * A tree an open revert is using stays, including one saved by an earlier
+ * process. A remembered turn does not.
  */
 collect(): Promise<void>
 ```

@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This package records a revert boundary on the session log. Stage hides one user message and everything after it from derived model history. Clear restores that stage. The next human prompt commits the stage, so those messages stay out of later requests while the log itself remains intact.
+This package records a revert boundary on the session log. Stage hides one user message and everything after it from derived model history. Clear restores that stage. The next step that logs input commits the stage, so those messages stay out of later requests while the log itself remains intact.
 
 ## Table of Contents
 
@@ -18,6 +18,7 @@ This package records a revert boundary on the session log. Stage hides one user 
 - [Further Exploration](#further-exploration)
 - [Model Experience](#model-experience)
 - [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+  - [Dev Note](#dev-note)
 
 -----
 
@@ -34,8 +35,7 @@ Mount the plugin beside the session store, the agent registry, and the projectio
 
 ### Calls
 
-`stage(agent, atSeq)` appends `session/revert/staged` when `atSeq` is an existing `user/message` outside every frozen range. A repeat of the current boundary changes nothing. `clear(agent)` appends `session/revert/cleared` when a stage is active. Both refuse a running agent and an inbox that still holds pending input. `commit(agent)` appends `session/revert/committed` for the active stage. A human prompt also commits, from `agent/pre-step`, before that prompt is logged.
-Each of those three events is appended with `ignorable: true`.
+`stage(agent, atSeq)` appends `session/revert/staged` when `atSeq` is an existing `user/message` outside every frozen range. A repeat of the current boundary changes nothing. `clear(agent)` appends `session/revert/cleared` when a stage is active. Both refuse a running agent and an inbox that still holds pending input. `commit(agent)` appends `session/revert/committed` for the active stage. Any step that admits input also commits, from `agent/pre-step`, before that input is logged. This covers a human prompt and a scheduled or goal turn, whose input would otherwise land inside the hidden range. `bindFiles(files)` attaches file restore and returns a disposer that detaches it. Each of those three events is appended with `ignorable: true`.
 
 ### Failures
 
@@ -51,7 +51,7 @@ Each of those three events is appended with `ignorable: true`.
 
 ### Design concept
 
-The host fold lives in the `revert` projection. It keeps the staged boundary, frozen ranges, and the seq of every `user/message`. The client view omits the seq list. `Session.deriveMessages()` applies the same markers, so a staged or committed range never reaches a model request. Commit's exclusive end is the commit event, so the human prompt logged after it stays visible.
+The host fold lives in the `revert` projection. It keeps the staged boundary, frozen ranges, and the seq of every `user/message`. The client view omits the seq list. `Session.deriveMessages()` applies the same markers, so a staged or committed range never reaches a model request. Commit's exclusive end is the commit event, so the input logged after it stays visible.
 
 ### Source map
 
@@ -88,4 +88,14 @@ Staging, clearing, or committing changes the derived suffix, so reuse stops at t
 
 - **No file rollback.** Markers hide messages only. Restoring workspace files is a separate snapshot seam.
 - **Whole-message boundary.** There is no part-level cut inside one user message.
-- **Human prompt commits.** Injected context and tool steps leave a stage in place until a `source.kind === 'user'` prompt enters.
+- **Any input commits.** A scheduled or goal turn that starts while a stage is open freezes it, so redo is no longer offered. A step that admits nothing leaves the stage in place.
+
+<a id="dev-note"></a>
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
+
+Commit waits for the file plugin's `commit` before it appends the marker, so a later stage never races the dropped file record.
+
+</details>

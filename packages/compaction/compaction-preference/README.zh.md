@@ -7,7 +7,7 @@ kind: "package-reference"
 
 [English](README.md) | 中文
 
-## 摘要
+## 概述
 
 `dsh-compaction-preference` 保存进程的自动压缩方式。已交付的 base 配置把它挂成 `context-compaction`。设置 → 通用设置 → 上下文压缩编辑 `method`。默认是 `soft`。选择 `snapcompact` 不会改变未声明图片输入的模型：那些模型的自动压缩仍然写摘要。`/compact` 的方式词不会写入这项设置。
 
@@ -18,7 +18,7 @@ kind: "package-reference"
 - [进一步了解](#further-exploration)
 - [模型体验](#model-experience)
 - [已知限制与延后工作](#known-limitations-and-deferred-work)
-- [开发笔记](#dev-note)
+- [开发备注](#dev-note)
 
 -----
 
@@ -83,7 +83,7 @@ base 包已经挂载该插件。在设置 → 通用设置 → 上下文压缩�
 - 该行不选择帧形状。
 
 <a id="dev-note"></a>
-### 开发笔记
+### 开发备注
 
 <details>
 <summary>维护者工作上下文 — 点击展开</summary>

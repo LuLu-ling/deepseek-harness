@@ -1,8 +1,11 @@
 /**
  * Client `/undo` and `/redo` commands. They stage or clear the session revert
  * boundary from the loaded event window. Undo places that message's text and
- * images in the composer. Redo and the dock's restore actions clear that
- * composer content. Files stay out of the composer.
+ * images in the composer, and puts the previous draft back when the Host
+ * refuses. Redo and the dock's restore actions clear that composer content.
+ * While one undo or redo for a session waits on the Host, another is ignored,
+ * so the composer never shows a prompt the boundary did not move to. Files
+ * stay out of the composer.
  */
 import type { Context } from '@deepseek-ai/cordis'
 import { createElement } from 'react'
@@ -68,10 +71,29 @@ export function hiddenUserMessages(session: SessionFace): readonly { readonly se
  * @param seq - user message that becomes the revert boundary.
  */
 export function stageUndo(ctx: Context, session: SessionFace, seq: SessionSeq): void {
-  placeUndonePrompt(ctx, session, seq)
-  const stage = (): void => { void session.revertStage(seq) }
-  if (session.getSnapshot().running) void session.cancel().then(stage)
-  else stage()
+  runRevert(session, async () => {
+    const undoPlacement = placeUndonePrompt(ctx, session, seq)
+    try {
+      if (session.getSnapshot().running) await session.cancel()
+      const result = await session.revertStage(seq)
+      if (!result.ok) undoPlacement?.()
+    } catch (error: unknown) {
+      undoPlacement?.()
+      throw error
+    }
+  })
+}
+
+/** Sessions whose undo or redo still waits on the Host. */
+const inflight = new Set<string>()
+
+/** Run one undo or redo unless another for the same session is still in flight. */
+function runRevert(session: SessionFace, operation: () => Promise<void>): void {
+  const key = session.sessionId
+  if (inflight.has(key)) return
+  inflight.add(key)
+  // A refusal or a lost connection leaves the Host view in place; the next click retries.
+  void operation().catch(() => undefined).finally(() => { inflight.delete(key) })
 }
 
 /** A newer undo supersedes an image read that is still in flight. */
@@ -79,26 +101,35 @@ const imageRestores = new Map<string, number>()
 
 type PromptImage = Extract<SessionEvent<'user/message'>['data']['content'][number], { type: 'image' }>
 
-/** Replace the composer draft with the undone prompt text, and its images when present. */
-function placeUndonePrompt(ctx: Context, session: SessionFace, seq: SessionSeq): void {
+/**
+ * Replace the composer draft with the undone prompt text, and its images when present.
+ * @returns a function that puts the previous text back while the composer still shows the prompt,
+ *   or undefined when nothing was placed.
+ */
+function placeUndonePrompt(ctx: Context, session: SessionFace, seq: SessionSeq): (() => void) | undefined {
   const event = userMessages(session).find(item => item.seq === seq)
-  if (event === undefined) return
+  if (event === undefined) return undefined
   const text = event.data.content.flatMap(block => block.type === 'text' ? [block.text] : []).join('')
   const images = promptImages(event)
-  if (text === '' && images.length === 0) return
+  if (text === '' && images.length === 0) return undefined
   const binding = ctx.sessions.binding(session.sessionId)
-  if (binding === undefined || binding.session !== session) return
+  if (binding === undefined || binding.session !== session) return undefined
   const conversation = binding.ctx.get('conversation') as ConversationController | undefined
-  if (conversation === undefined) return
+  if (conversation === undefined) return undefined
   const shell = conversation.input.for(binding.ctx)
+  const previous = shell.state.getSnapshot().draft
   if (text !== '') shell.setDraft(text)
   shell.focus()
   if (images.length > 0) void restoreImages(conversation, session, shell, images)
+  return () => {
+    const key = session.sessionId
+    imageRestores.set(key, (imageRestores.get(key) ?? 0) + 1)
+    if (text !== '' && shell.state.getSnapshot().draft === text) shell.setDraft(previous)
+  }
 }
 
 function promptImages(event: SessionEvent<'user/message'>): PromptImage[] {
-  return event.data.content.flatMap(block =>
-    block.type === 'image' && block.attachment?.attachmentId !== undefined ? [block] : [])
+  return event.data.content.flatMap(block => block.type === 'image' ? [block] : [])
 }
 
 async function restoreImages(
@@ -282,12 +313,14 @@ function lastVisibleSession(session: SessionFace): SessionSeq | undefined {
 export function redoSession(ctx: Context, session: SessionFace): void {
   const staged = session.getSnapshot().revert.staged
   if (staged === null) return
-  clearComposer(ctx, session)
   const next = userMessages(session).find(event => event.seq > staged.atSeq && !session.getSnapshot().revert.committed.some(
     range => event.seq >= range.atSeq && event.seq < range.untilSeq,
   ))
-  if (next === undefined) void session.revertClear()
-  else void session.revertStage(SessionSeq(next.seq))
+  runRevert(session, async () => {
+    clearComposer(ctx, session)
+    if (next === undefined) await session.revertClear()
+    else await session.revertStage(SessionSeq(next.seq))
+  })
 }
 
 /**
@@ -303,8 +336,10 @@ export function stagedRevertActions(ctx: Context, session: SessionFace | undefin
 } {
   if (session === undefined) return { restore() {}, clear() {} }
   const clear = (): void => {
-    clearComposer(ctx, session)
-    void session.revertClear()
+    runRevert(session, async () => {
+      clearComposer(ctx, session)
+      await session.revertClear()
+    })
   }
   return {
     clear,
@@ -314,8 +349,10 @@ export function stagedRevertActions(ctx: Context, session: SessionFace | undefin
         clear()
         return
       }
-      clearComposer(ctx, session)
-      void session.revertStage(SessionSeq(later.seq))
+      runRevert(session, async () => {
+        clearComposer(ctx, session)
+        await session.revertStage(SessionSeq(later.seq))
+      })
     },
   }
 }

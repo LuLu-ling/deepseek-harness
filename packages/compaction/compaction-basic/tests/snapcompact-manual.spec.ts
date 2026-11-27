@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
@@ -33,13 +33,14 @@ class VisionAdapter extends LlmAdapter {
   readonly requests: RequestMessage[][] = []
   modalities: readonly ('text' | 'image')[] = ['text', 'image']
   visualTokens = 1
+  contextWindow = 200_000
 
   override resolveModel(provider: string, model: string): Promise<LlmResolvedModelInfo> {
     return Promise.resolve({
       provider,
       id: model,
       name: model,
-      context: { contextWindow: 200_000 },
+      context: { contextWindow: this.contextWindow },
       inputModalities: this.modalities,
     })
   }
@@ -122,5 +123,61 @@ describe('manual snapcompact', () => {
     expect(error).toBeInstanceOf(ManualCompactionError)
     expect(compact.calls).toHaveLength(0)
     expect(agent.session.deriveMessages().some(message => message.content.some(block => block.type === 'image'))).toBe(false)
+  }, 60_000)
+})
+
+describe('automatic snapcompact', () => {
+  async function snapcompactPreferred(contextWindow: number, ...history: number[]) {
+    const bench = await harness()
+    bench.ctx.reflect.provide('compactionPreference', { method: 'snapcompact' })
+    // Model info is read once, so the window is set before the first request.
+    bench.adapter.contextWindow = contextWindow
+    for (const length of history.length === 0 ? [50_000] : history) await seed(bench.agent, 'x'.repeat(length))
+    // Automatic compaction runs inside a turn.
+    bench.agent.session.append('turn/start', { turn: 2 })
+    return bench
+  }
+
+  it('summarizes an overflow instead of giving up when no frame fits', async () => {
+    // A one-token window leaves no room for a frame beside the retained history.
+    const { agent, compact } = await snapcompactPreferred(1)
+    const result = await compact.compactIfNeeded(agent, 'context-overflow', SIGNAL)
+    expect(result).not.toBeNull()
+    expect(compact.calls).toHaveLength(1)
+  }, 60_000)
+
+  it('summarizes under pressure instead of leaving the history above the threshold', async () => {
+    const { agent, compact } = await snapcompactPreferred(100_000, 200_000, 80_000)
+    vi.spyOn(compact as unknown as { frameCapFrom: () => Promise<number> }, 'frameCapFrom').mockResolvedValue(0)
+    const result = await compact.compactIfNeeded(agent, 'pressure', SIGNAL)
+    expect(result).not.toBeNull()
+    expect(compact.calls).toHaveLength(1)
+  }, 60_000)
+
+  it('archives an overflow when a frame fits, and summarizes it on a text-only model', async () => {
+    const vision = await snapcompactPreferred(200_000)
+    await expect(vision.compact.compactIfNeeded(vision.agent, 'context-overflow', SIGNAL)).resolves.not.toBeNull()
+    expect(vision.compact.calls).toHaveLength(0)
+
+    const text = await harness()
+    text.ctx.reflect.provide('compactionPreference', { method: 'snapcompact' })
+    text.adapter.modalities = ['text']
+    await seed(text.agent, 'x'.repeat(50_000))
+    text.agent.session.append('turn/start', { turn: 2 })
+    await expect(text.compact.compactIfNeeded(text.agent, 'context-overflow', SIGNAL)).resolves.not.toBeNull()
+    expect(text.compact.calls).toHaveLength(1)
+  }, 60_000)
+
+  it('refuses a manual snapcompact when no frame fits', async () => {
+    const { agent, compact } = await snapcompactPreferred(1)
+    await expect(compact.compactNow(agent, SIGNAL, undefined, 'snapcompact')).rejects.toThrow(/cannot fit a frame/)
+    expect(compact.calls).toHaveLength(0)
+  }, 60_000)
+
+  it('archives under pressure when a frame fits', async () => {
+    const { agent, compact } = await snapcompactPreferred(100_000, 200_000, 80_000)
+    const result = await compact.compactIfNeeded(agent, 'pressure', SIGNAL)
+    expect(result).not.toBeNull()
+    expect(compact.calls).toHaveLength(0)
   }, 60_000)
 })

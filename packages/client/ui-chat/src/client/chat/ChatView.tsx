@@ -19,7 +19,7 @@ import { TurnNavigator } from './TurnNavigator.tsx'
 import { ChatAside } from './ChatAside.tsx'
 import { mergeTurnRailItems } from './turn-rail-items.ts'
 import {
-  collectRetractedTurns, placeVisibleBeforeRevert, REVERT_CHROME_KINDS, seqHiddenByRevert,
+  nodeTurn, placeVisibleBeforeRevert, retractedChatTurns, REVERT_CHROME_KINDS, seqHiddenByRevert,
 } from './revert-visibility.ts'
 import { useTextInteraction } from './text-interaction.ts'
 import { useChatScroll } from './use-chat-scroll.ts'
@@ -88,15 +88,9 @@ export function ChatView({
   const groupedEntries = useConversation(snapshot => snapshot.views.grouped('chat')?.entries)
   const nodeStore = useChat(s => s.nodes)
   const revert = useSession(s => s.revert)
-  const retracted = useMemo(() => collectRetractedTurns(order.flatMap((key) => {
-    const node = nodeStore.get(key)
-    if (node === undefined) return []
-    const location = node.location
-    const turn = location.kind === 'turn' || location.kind === 'step' ? location.turn.turn : undefined
-    return [{ kind: node.kind, anchorSeq: node.anchorSeq, turn }]
-  }), revert), [order, nodeStore, revert])
+  const retracted = useMemo(() => retractedChatTurns(order, nodeStore, revert), [order, nodeStore, revert])
   const entries = useMemo<readonly RenderEntry[]>(() => {
-    const base = groupedEntries ?? order.map(key => ({ kind: 'node', key: key as NodeKey }))
+    const base: readonly RenderEntry[] = groupedEntries ?? order.map(key => ({ kind: 'node', key: key as NodeKey }))
     return placeVisibleBeforeRevert(base, (entry) => {
       if (entry.kind === 'group') {
         const turn = grouped?.groupSource(entry.key).getSnapshot()?.data.turn
@@ -104,8 +98,7 @@ export function ChatView({
       }
       const node = nodeStore.get(entry.key)
       if (node === undefined) return false
-      const location = node.location
-      const turn = location.kind === 'turn' || location.kind === 'step' ? location.turn.turn : undefined
+      const turn = nodeTurn(node)
       if (turn !== undefined && retracted.has(turn) && REVERT_CHROME_KINDS[node.kind] === true) return true
       return seqHiddenByRevert(revert, node.anchorSeq)
     })
@@ -119,8 +112,7 @@ export function ChatView({
   const visibleNavigation = useMemo(() => turnNavigationItems.filter((item) => {
     const node = nodeStore.get(item.anchorKey)
     if (node === undefined) return true
-    const location = node.location
-    const turn = location.kind === 'turn' || location.kind === 'step' ? location.turn.turn : undefined
+    const turn = nodeTurn(node)
     if (turn !== undefined && retracted.has(turn)) return false
     return !seqHiddenByRevert(revert, node.anchorSeq)
   }), [turnNavigationItems, nodeStore, retracted, revert])

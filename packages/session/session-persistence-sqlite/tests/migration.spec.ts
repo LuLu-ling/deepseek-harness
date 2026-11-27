@@ -24,6 +24,7 @@ async function fixture() {
     stat: async () => ({ header, revision: SessionPersistenceRevision('legacy'), eventCount: 0 }),
     prepare: async () => ({ header, inheritedEventCount: SessionLogOffset(0), events: [],
       commit: async publish => publish({ header, inheritedEventCount: SessionLogOffset(0), events: [] }) }),
+    delete: async () => { throw new Error('legacy delete is not part of migration') },
   }
   const selected = vi.fn(async () => false)
   const migration = new LegacySessionMigration(jsonl, sqlite, selected, async () => {})

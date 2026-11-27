@@ -93,15 +93,26 @@ interface SilverFont {
   cache: Map<string, RasterizedGlyph | undefined>
 }
 
-function fontsDir(): string {
+/**
+ * Package-root asset directory, found by walking up from this module. Source
+ * and the bundled `lib/` entry sit at different depths below the root.
+ * @param name - directory below the package root.
+ * @param probe - file that must exist inside it.
+ * @returns the directory path.
+ */
+export function packageAssetDir(name: string, probe: string): string {
   let dir = path.dirname(fileURLToPath(import.meta.url))
   for (let i = 0; i < 8; i++) {
-    if (existsSync(path.join(dir, 'fonts', '5x8.bdf'))) return path.join(dir, 'fonts')
+    if (existsSync(path.join(dir, name, probe))) return path.join(dir, name)
     const parent = path.dirname(dir)
     if (parent === dir) break
     dir = parent
   }
-  throw new Error('snapcompact fonts directory not found (fonts/5x8.bdf)')
+  throw new Error(`snapcompact ${name} directory not found (${name}/${probe})`)
+}
+
+function fontsDir(): string {
+  return packageAssetDir('fonts', '5x8.bdf')
 }
 
 function parseBdf(text: string, cellW: number, cellH: number): BitmapFont {

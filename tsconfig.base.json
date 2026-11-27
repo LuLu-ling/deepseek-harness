@@ -186,6 +186,7 @@
       "@lulu-ling/dsh-session-revert/types": ["./packages/session/session-revert/src/types.ts"],
       "@lulu-ling/dsh-session-revert/client": ["./packages/session/session-revert/src/client.ts"],
       "@lulu-ling/dsh-session-revert": ["./packages/session/session-revert/src/index.ts"],
+      "@lulu-ling/dsh-session-file-snapshot": ["./packages/session/session-file-snapshot/src"],
       "@lulu-ling/dsh-compaction-preference": ["./packages/compaction/compaction-preference/src"],
       "@lulu-ling/dsh-snapcompact": ["./packages/compaction/snapcompact/src"],
       "@deepseek-ai/dsh-subagent/client": ["./packages/subagent/subagent/src/client.ts"],
@@ -248,6 +249,7 @@
       "@deepseek-ai/dsh-headless/startup": ["./packages/bundle/headless/src/startup.ts"],
       "@deepseek-ai/dsh-web-app/startup": ["./packages/bundle/web-app/src/startup.ts"],
       "@deepseek-ai/dsh-client-*/client": ["./packages/client/*/src/client"],
+      "@lulu-ling/dsh-client-*/client": ["./packages/client/*/src/client"],
       // One wildcard maps every @deepseek-ai/dsh-<name> to its source. Package
       // dir names are unique across groups, so first-on-disk-wins resolution is
       // unambiguous; adding a package under an existing group needs no edit

@@ -22,7 +22,7 @@
 
 这些变体在 `declare module '@deepseek-ai/dsh-session/types'` 块内合并，因此——与其他子系统页面上的顶层类型不同——它们不以漂移检查的 ` ```ts type-equiv ` 块粘贴（`verify-type-equiv` 提取器只按名称匹配顶层声明）。上方的载荷表即为目录条目；权威字段请循源码链接查看。
 
-Snapcompact 检查点使用同一对标记。`compaction/summary.summary` 保存阅读说明，可选的 `snapcompact` 字段保存源文本、帧几何和附件 id。PNG 帧是替换用 `user/message` 上的图片块，不是摘要事件里的字节。旧读者忽略该可选字段。只有已保存的 `context-compaction` 方式为 `snapcompact` 且路由模型声明了图片输入时，自动压缩才走 snapcompact；否则自动压缩仍然写摘要。手动 `/compact snapcompact` 不回退。
+Snapcompact 检查点使用同一对标记。`compaction/summary.summary` 保存阅读说明，可选的 `snapcompact` 字段保存源文本、帧几何和附件 id。PNG 帧是替换用 `user/message` 上的图片块，不是摘要事件里的字节。旧读者忽略该可选字段。只有已保存的 `context-compaction` 方式为 `snapcompact`、路由模型声明了图片输入、且上下文窗口至少放得下一帧时，自动压缩才走 snapcompact；否则自动压缩仍然写摘要。手动 `/compact snapcompact` 不回退。
 
 <a id="image-offload"></a>
 ## 图片省略

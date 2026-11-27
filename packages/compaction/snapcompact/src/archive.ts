@@ -13,13 +13,17 @@
  */
 
 import { readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { renderSnapcompactPng, snapcompactSupportedChars } from './raster.ts'
+import { join } from 'node:path'
+import { packageAssetDir, renderSnapcompactPng, snapcompactSupportedChars } from './raster.ts'
 import type { SnapcompactRenderOptions } from './raster.ts'
 
-const PROMPT_DIR = join(dirname(fileURLToPath(import.meta.url)), '../prompts')
-const SUMMARY_TEMPLATE = readFileSync(join(PROMPT_DIR, 'snapcompact-summary.md'), 'utf8')
+let summaryTemplate: string | undefined
+
+/** The summary prompt beside the package, read on first archive so importing never needs the file. */
+function summaryTemplateText(): string {
+  summaryTemplate ??= readFileSync(join(packageAssetDir('prompts', 'snapcompact-summary.md'), 'snapcompact-summary.md'), 'utf8')
+  return summaryTemplate
+}
 
 // ============================================================================
 // Shapes
@@ -1667,7 +1671,7 @@ export async function compactSnapcompact(request: SnapcompactRequest): Promise<S
   if (frames.length === 0 && textHead.length === 0 && textTail.length === 0 && files.length === 0) {
     summary = 'No prior history.'
   } else {
-    summary = renderTemplate(SUMMARY_TEMPLATE, {
+    summary = renderTemplate(summaryTemplateText(), {
       frameCount: frames.length,
       docColumns: high.columns === 2,
       cols: summaryCols,

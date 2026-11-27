@@ -15,12 +15,21 @@ export const EMPTY_REVERT_STATE: SessionRevertState = {
 
 /**
  * Whether a step's admitted messages include a human prompt.
- * Commit runs only for that case, before those messages are logged.
  * @param messages - messages the step is about to enter.
  * @returns true when one source is `kind: 'user'`.
  */
 export function humanPromptStarts(messages: readonly { source: { kind: string } }[]): boolean {
   return messages.some(message => message.source.kind === 'user')
+}
+
+/**
+ * Whether a step is about to log new input. A staged revert hides every later
+ * seq, so any such step, human or scheduled, commits the stage first.
+ * @param messages - messages the step is about to enter.
+ * @returns true when the step admits at least one message.
+ */
+export function stepAdmitsInput(messages: readonly unknown[]): boolean {
+  return messages.length > 0
 }
 
 /**

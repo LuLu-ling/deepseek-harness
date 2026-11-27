@@ -215,6 +215,11 @@ The Chat view detects selection and context-menu gestures on business nodes mark
 
 Markdown files, links, images, reference chips, and tool-file controls forward explicit right-click targets to [ui-context-menu](../ui-context-menu/README.md). File targets retain their working directory and line; ordinary link clicks retain the configured opening preference.
 
+<a id="revert"></a>
+## Revert
+
+`/undo` hides the last visible user message and everything after it, and places that message's text and images in the composer. An image-only message keeps the current text. `/redo` reveals the next hidden user message, or clears the staged boundary when none remains, and clears the composer text and images. Restoring one hidden message or every hidden message from the list does the same. The list shows Restore all only when more than one message is hidden. Primary+Alt+U and Primary+Alt+R do the same from the page or the composer. A staged boundary shows a restore row under the transcript and a collapsible list above the composer. The undo icon beside Copy on a user message does the same for that message. File rollback, when the working directory is a git checkout, is performed by [session file snapshots](../../session/session-file-snapshot/README.md). Files attached to the undone message are not placed back in the composer. While one undo or redo waits on the Host, another is ignored, and a refused undo puts the previous draft back unless it was edited since.
+
 <a id="model-experience"></a>
 ## Model Experience
 
@@ -223,12 +228,6 @@ None, as this package renders logged conversation state in the browser and regis
 #### KV Cache effect
 
 None; Chat presentation does not assemble or mutate provider requests.
-
-<a id="revert"></a>
-## Revert
-
-`/undo` hides the last visible user message and everything after it, and places that message's text and images in the composer. An image-only message keeps the current text. `/redo` reveals the next hidden user message, or clears the staged boundary when none remains, and clears the composer text and images. Restoring one hidden message or every hidden message from the list does the same. The list shows Restore all only when more than one message is hidden. Primary+Alt+U and Primary+Alt+R do the same from the page or the composer. A staged boundary shows a restore row under the transcript and a collapsible list above the composer. The undo icon beside Copy on a user message does the same for that message. File rollback, when the working directory is a git checkout, is performed by [session file snapshots](../../session/session-file-snapshot/README.md). Files attached to the undone message are not placed back in the composer.
-
 
 ## Known Limitations and Deferred Work
 

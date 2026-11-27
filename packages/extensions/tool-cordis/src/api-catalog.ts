@@ -3904,9 +3904,10 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     description: '`ctx.sessionRevert`: stage, clear, and commit one session\'s revert boundary.',
     methods: [
       {
-        signature: 'bindFiles(files: SessionRevertFiles): void',
+        signature: 'bindFiles(files: SessionRevertFiles): () => void',
         description: 'Attach worktree restore. The snapshot plugin calls this once it is mounted.',
         parameters: [{ name: 'files', description: 'capture and restore callbacks.' }],
+        returns: 'a disposer that detaches `files` unless a later binding replaced them.',
       },
       {
         signature: '@Remote(\'stage\') async stage(agent: Agent, atSeq: SessionSeq): Promise<SessionRevertStageResult>',
@@ -3924,7 +3925,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
       {
         signature: '@Remote(\'commit\') commit(agent: Agent): Promise<SessionRevertCommitResult>',
-        description: 'Freeze the staged boundary. No-op when nothing is staged. Waits until an in-flight stage or clear for this session has appended. Called before a human prompt is logged, and by redo\'s full restore path only through clear.',
+        description: 'Freeze the staged boundary. No-op when nothing is staged. Waits until an in-flight stage or clear for this session has appended. Called before a step logs new input, and before manual compaction.',
         parameters: [{ name: 'agent', description: 'live agent.' }],
         returns: 'whether a stage was frozen.',
       },
@@ -4039,13 +4040,13 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'per-path addition and deletion counts.',
       },
       {
-        signature: 'rememberTurn(sessionId: SessionId, turn: number, snapshot: SnapshotId): void',
-        description: 'Remember the snapshot that belongs to one turn. The pre-step hook calls this.',
-        parameters: [{ name: 'sessionId', description: 'session whose turn just opened.' }, { name: 'turn', description: 'turn number from `turn/start`.' }, { name: 'snapshot', description: 'tree captured before that turn wrote files.' }],
+        signature: 'rememberTurn(sessionId: SessionId, turn: number, snapshot: SnapshotId, step?: number): void',
+        description: 'Remember the snapshot that belongs to one turn, or to one later step of it. The pre-step hook calls this.',
+        parameters: [{ name: 'sessionId', description: 'session whose turn just opened.' }, { name: 'turn', description: 'turn number from `turn/start`.' }, { name: 'snapshot', description: 'tree captured before that turn, or that step, wrote files.' }, { name: 'step', description: 'step that admitted a human message after the first. Omitted means the turn.' }],
       },
       {
         signature: 'collect(): Promise<void>',
-        description: 'Drop snapshot trees that exceed the configured count, disk, or age limits. A tree an open revert is using stays. A remembered turn does not.',
+        description: 'Drop snapshot trees that exceed the configured count, disk, or age limits. A tree an open revert is using stays, including one saved by an earlier process. A remembered turn does not.',
         parameters: [],
       },
     ],
@@ -10395,7 +10396,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SessionRevertFiles',
-    declaration: 'export interface SessionRevertFiles {\n    stage(agent: Agent, atSeq: SessionSeq, prev: {\n        atSeq: number;\n    } | null): Promise<void>;\n    clear(agent: Agent): Promise<void>;\n    commit(agent: Agent): void;\n}',
+    declaration: 'export interface SessionRevertFiles {\n    stage(agent: Agent, atSeq: SessionSeq, prev: {\n        atSeq: number;\n    } | null): Promise<void>;\n    clear(agent: Agent): Promise<void>;\n    commit(agent: Agent): void | Promise<void>;\n}',
   },
   {
     name: 'SessionRevertStageResult',

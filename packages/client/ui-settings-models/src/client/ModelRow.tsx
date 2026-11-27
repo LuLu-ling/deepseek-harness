@@ -185,7 +185,6 @@ export function ModelRow(props: ModelRowProps): ReactNode {
           )
           : null}
       </div>
-
     </div>
   )
 }

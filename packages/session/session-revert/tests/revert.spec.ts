@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import type { Agent } from '@deepseek-ai/dsh-agent'
@@ -8,7 +8,9 @@ import type { ContextFormed, UserMessage } from '@deepseek-ai/dsh-llm'
 import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import type { Session } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
-import SessionRevertService, { humanPromptStarts } from '@lulu-ling/dsh-session-revert'
+import SessionRevertService, { applyRevertProjection, humanPromptStarts, revertProjectionDefinition } from '@lulu-ling/dsh-session-revert'
+import type { SessionRevertState } from '@lulu-ling/dsh-session-revert'
+import type { SessionEvent } from '@deepseek-ai/dsh-session'
 
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
@@ -131,24 +133,104 @@ describe('SessionRevertService', () => {
     expect(humanPromptStarts([{ source: { kind: 'agent-instructions' } }])).toBe(false)
   })
 
-  it('does not commit a staged revert for a non-human step', async () => {
+  it('commits a staged revert before a scheduled step logs its input', async () => {
     const { ctx, agent, session } = await harness('revert-inject')
-    const first = session.append('user/message', prompt('one'), { surfaceOp: 'append' })
-    await ctx.sessionRevert.stage(agent, first.seq)
-    const injected = createUserMessage({
-      content: [{ type: 'text', text: 'notice' }],
+    session.append('user/message', prompt('one'), { surfaceOp: 'append' })
+    const second = session.append('user/message', prompt('two'), { surfaceOp: 'append' })
+    await ctx.sessionRevert.stage(agent, second.seq)
+    const scheduled = createUserMessage({
+      content: [{ type: 'text', text: 'scheduled' }],
       source: { kind: 'watcher' },
     })
     await ctx.waterfall('agent/pre-step', {
       agent,
-      messages: [injected],
+      messages: [scheduled],
       modelSelection: { provider: 'test', model: 'test' },
       turn: 1,
       step: 0,
       signal: new AbortController().signal,
-    }, async () => ({ kind: 'enter' as const, messages: [injected] }))
-    expect(userTexts(session)).toEqual([])
+    }, async () => ({ kind: 'enter' as const, messages: [scheduled] }))
+    session.append('user/message', scheduled, { surfaceOp: 'append' })
+    // The scheduled turn sees its own input instead of running inside the hidden range.
+    expect(userTexts(session)).toEqual(['one', 'scheduled'])
+    expect(ctx.sessionProjections.snapshot(session).values.revert?.staged).toBeNull()
+  })
+
+  it('leaves a staged revert open for a step that admits nothing', async () => {
+    const { ctx, agent, session } = await harness('revert-empty-step')
+    const first = session.append('user/message', prompt('one'), { surfaceOp: 'append' })
+    await ctx.sessionRevert.stage(agent, first.seq)
+    await ctx.waterfall('agent/pre-step', {
+      agent,
+      messages: [],
+      modelSelection: { provider: 'test', model: 'test' },
+      turn: 1,
+      step: 0,
+      signal: new AbortController().signal,
+    }, async () => ({ kind: 'enter' as const, messages: [] }))
     expect(ctx.sessionProjections.snapshot(session).values.revert?.staged).toEqual({ atSeq: first.seq })
+  })
+
+  it('keeps the same fold reference for a repeated or no-op marker', () => {
+    const state: SessionRevertState = { staged: { atSeq: 3 }, committed: [], userSeqs: [3] }
+    const event = (type: string, seq: number, data: unknown) => ({ type, seq, time: 0, data }) as SessionEvent
+    expect(applyRevertProjection(state, event('user/message', 3, {}))).toBe(state)
+    expect(applyRevertProjection(state, event('session/revert/staged', 4, { atSeq: 3 }))).toBe(state)
+    const cleared: SessionRevertState = { ...state, staged: null }
+    expect(applyRevertProjection(cleared, event('session/revert/cleared', 5, {}))).toBe(cleared)
+  })
+
+  it('refuses a queued stage once input or a run started while it waited', async () => {
+    const { ctx, agent, session, setStatus } = await harness('revert-queue-busy')
+    session.append('user/message', prompt('one'), { surfaceOp: 'append' })
+    const second = session.append('user/message', prompt('two'), { surfaceOp: 'append' })
+    const third = session.append('user/message', prompt('three'), { surfaceOp: 'append' })
+    const gate = Promise.withResolvers<undefined>()
+    const entered = Promise.withResolvers<undefined>()
+    ctx.sessionRevert.bindFiles({
+      stage: () => { entered.resolve(undefined); return gate.promise },
+      clear: async () => {},
+      commit: () => {},
+    })
+    const holding = ctx.sessionRevert.stage(agent, third.seq)
+    await entered.promise
+    const pending = ctx.sessionRevert.stage(agent, second.seq).then(() => undefined, (error: unknown) => error)
+    agent.inbox.append('next-turn', prompt('queued'))
+    gate.resolve(undefined)
+    await holding
+    expect(await pending).toMatchObject({ code: 'session/revert-busy', details: { reason: 'pending' } })
+    agent.inbox.clear()
+
+    const again = Promise.withResolvers<undefined>()
+    const reentered = Promise.withResolvers<undefined>()
+    ctx.sessionRevert.bindFiles({
+      stage: () => { reentered.resolve(undefined); return again.promise },
+      clear: async () => {},
+      commit: () => {},
+    })
+    const blocking = ctx.sessionRevert.stage(agent, second.seq)
+    await reentered.promise
+    const running = ctx.sessionRevert.clear(agent).then(() => undefined, (error: unknown) => error)
+    setStatus('running')
+    again.resolve(undefined)
+    await blocking
+    expect(await running).toMatchObject({ code: 'session/revert-busy', details: { reason: 'running' } })
+  })
+
+  it('detaches bound files only while they are still the current binding', async () => {
+    const { ctx, agent, session } = await harness('revert-unbind')
+    const first = session.append('user/message', prompt('one'), { surfaceOp: 'append' })
+    const stale = { stage: vi.fn(async () => {}), clear: vi.fn(async () => {}), commit: vi.fn() }
+    const current = { stage: vi.fn(async () => {}), clear: vi.fn(async () => {}), commit: vi.fn(async () => {}) }
+    const unbindStale = ctx.sessionRevert.bindFiles(stale)
+    const unbindCurrent = ctx.sessionRevert.bindFiles(current)
+    unbindStale()
+    await ctx.sessionRevert.stage(agent, first.seq)
+    expect(current.stage).toHaveBeenCalledTimes(1)
+    unbindCurrent()
+    await ctx.sessionRevert.clear(agent)
+    expect(current.clear).not.toHaveBeenCalled()
+    expect(stale.stage).not.toHaveBeenCalled()
   })
 
   it('refuses an agent that is not the live registry instance', async () => {
@@ -188,6 +270,44 @@ describe('SessionRevertService', () => {
     const first = session.append('user/message', prompt('one'), { surfaceOp: 'append' })
     await fiber.dispose()
     await expect(service.stage(agent, first.seq)).rejects.toThrow('cannot get required service "agents" in inactive context')
+  })
+
+  it('refuses before its projection registers and drops a registration that lands after dispose', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
+    await ctx.plugin(AgentRegistry)
+    const registered = Promise.withResolvers<Awaited<ReturnType<typeof ctx.sessionProjections.register>>>()
+    const register = vi.spyOn(ctx.sessionProjections, 'register').mockReturnValue(registered.promise)
+    const fiber = await ctx.plugin(SessionRevertService)
+    const session = ctx.sessions.create(SessionId('revert-late-projection'))
+    const agent: Agent = {
+      id: session.id,
+      options: {},
+      session,
+      inbox: createInboxStub(),
+      model: { current: () => undefined, select: () => {} },
+      ctx,
+      status: 'idle',
+      send: () => {},
+      followup: () => {},
+      steer: () => {},
+      inject: () => {},
+      cancel: () => {},
+      runMaintenance: task => task(new AbortController().signal),
+      whenIdle: () => Promise.resolve(),
+    }
+    await ctx.agents.register(agent)
+    const service = ctx.sessionRevert
+    const first = session.append('user/message', prompt('one'), { surfaceOp: 'append' })
+    await expect(service.stage(agent, first.seq)).rejects.toThrow('revert projection is not registered')
+    await fiber.dispose()
+    register.mockRestore()
+    const real = await ctx.sessionProjections.register({ ...revertProjectionDefinition, key: 'revert-late' as 'revert' })
+    registered.resolve(real)
+    await registered.promise
+    await Promise.resolve()
+    expect(Reflect.get(service, 'revertHandle')).toBeUndefined()
   })
 
   it('reads the second stage only after the first file restore appends', async () => {
@@ -252,7 +372,7 @@ describe('SessionRevertService', () => {
     await stepped
     expect(ctx.sessionProjections.snapshot(session).values.revert).toEqual({
       staged: null,
-      committed: [{ atSeq: second.seq, untilSeq: expect.any(Number) }],
+      committed: [{ atSeq: second.seq, untilSeq: expect.any(Number) as number }],
     })
   })
 })

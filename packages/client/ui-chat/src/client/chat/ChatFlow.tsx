@@ -7,7 +7,7 @@ import { ChatNodeSeat } from './ChatNodeSeat.tsx'
 import { ChatGroupSeat } from './ChatGroupSeat.tsx'
 import { PendingSteeringBubble, PendingSubmissionBubble } from './MessageItem.tsx'
 import { chatRenderKey } from './render-entry.ts'
-import { collectRetractedTurns, REVERT_CHROME_KINDS } from './revert-visibility.ts'
+import { nodeTurn, retractedChatTurns, REVERT_CHROME_KINDS } from './revert-visibility.ts'
 import { RunningStatus } from './RunningStatus.tsx'
 
 /** A local submission echo, or a Host-pending steering item without a local submission. */
@@ -34,13 +34,7 @@ export const ChatFlow = memo(function ChatFlow({
   const order = useChat(snapshot => snapshot.order)
   const running = useSession(snapshot => snapshot.running)
   const revert = useSession(snapshot => snapshot.revert)
-  const retracted = useMemo(() => collectRetractedTurns(order.flatMap((key) => {
-    const node = nodeStore.get(key)
-    if (node === undefined) return []
-    const location = node.location
-    const turn = location.kind === 'turn' || location.kind === 'step' ? location.turn.turn : undefined
-    return [{ kind: node.kind, anchorSeq: node.anchorSeq, turn }]
-  }), revert), [order, nodeStore, revert])
+  const retracted = useMemo(() => retractedChatTurns(order, nodeStore, revert), [order, nodeStore, revert])
   const disconnected = useConnectionState(state => state === 'disconnected' || state === 'connecting')
   const latestTurnAnchor = useChat((snapshot) => {
     const items = snapshot.navigation.items()
@@ -49,8 +43,7 @@ export const ChatFlow = memo(function ChatFlow({
       if (item === undefined) continue
       const node = snapshot.nodes.get(item.anchorKey)
       if (node === undefined) continue
-      const location = node.location
-      const turn = location.kind === 'turn' || location.kind === 'step' ? location.turn.turn : undefined
+      const turn = nodeTurn(node)
       if (turn !== undefined && retracted.has(turn)) continue
       return item.anchorKey
     }
@@ -76,8 +69,7 @@ export const ChatFlow = memo(function ChatFlow({
     switch (entry.kind) {
       case 'node': {
         const node = nodeStore.get(entry.key)
-        const location = node?.location
-        const turn = location?.kind === 'turn' || location?.kind === 'step' ? location.turn.turn : undefined
+        const turn = node === undefined ? undefined : nodeTurn(node)
         if (node !== undefined && turn !== undefined && retracted.has(turn)
           && REVERT_CHROME_KINDS[node.kind] === true) return null
         return <ChatNodeSeat {...seatProps} key={chatRenderKey(entry)} nodeKey={entry.key}

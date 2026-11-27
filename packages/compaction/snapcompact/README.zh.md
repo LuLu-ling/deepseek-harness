@@ -1,13 +1,13 @@
 ---
 description: "把被丢弃的会话片段印成视觉模型可读的 PNG 帧，而不调用摘要模型。"
-kind: "package-library"
+kind: "package-reference"
 ---
 
 # @lulu-ling/dsh-snapcompact
 
 [English](README.md) | 中文
 
-## 摘要
+## 概述
 
 `dsh-snapcompact` 让压缩把较早历史印成 PNG 帧，而不是请模型写摘要。手动 `/compact snapcompact`，以及已保存方式为 `snapcompact` 且路由模型声明了图片输入时的自动压缩，都由 `compaction-basic` 调用 `compactSnapcompact`。调用方通过附件服务接纳 PNG 字节，并把图片块放在替换用的用户消息上。形状按模型 id 选择。没有形状设置。
 
@@ -18,7 +18,7 @@ kind: "package-library"
 - [进一步了解](#further-exploration)
 - [模型体验](#model-experience)
 - [已知限制与延后工作](#known-limitations-and-deferred-work)
-- [开发笔记](#dev-note)
+- [开发备注](#dev-note)
 
 -----
 
@@ -82,11 +82,11 @@ const archive = await compactSnapcompact({
 <a id="known-limitations-and-deferred-work"></a>
 
 - 没有面向用户的形状选择。解析保持自动。
-- 未声明图片输入的模型不能使用档案。自动压缩回退到摘要；手动 snapcompact 调用失败。
+- 未声明图片输入的模型不能使用档案；在保留历史之外连一帧都放不下的窗口也不能。两种情况下自动压缩都回退到摘要；手动 snapcompact 调用失败。
 - TypeScript 光栅器匹配生产形状所用的帧几何。它不附带原生插件。
 
 <a id="dev-note"></a>
-### 开发笔记
+### 开发备注
 
 <details>
 <summary>维护者工作上下文 — 点击展开</summary>

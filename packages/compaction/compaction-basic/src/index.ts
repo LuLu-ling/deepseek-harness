@@ -8,7 +8,7 @@ import { Context, Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { CompactionEngine, ManualCompactionError } from '@deepseek-ai/dsh-compaction'
 import type { CompactionResult, CompactionTrigger } from '@deepseek-ai/dsh-compaction'
-import { foldRevert, type EpochHeader, type Session, type SessionSeq } from '@deepseek-ai/dsh-session'
+import type { EpochHeader, Session, SessionSeq } from '@deepseek-ai/dsh-session'
 import type { ProjectionHandle } from '@deepseek-ai/dsh-session-projection'
 import { CONTEXT_WINDOW_EXCEEDED_CODE, LlmError } from '@deepseek-ai/dsh-llm'
 import { assertNever } from '@deepseek-ai/dsh-util-values'
@@ -17,6 +17,7 @@ import type { CommandId } from '@deepseek-ai/dsh-commands/types'
 // Type-only: makes the optional sibling service available to `ctx.get()`.
 import type {} from '@deepseek-ai/dsh-compaction-tool-result-pruner'
 import type {} from '@lulu-ling/dsh-session-revert'
+import type {} from '@lulu-ling/dsh-compaction-preference'
 import { answeredRouteProjectionDefinition } from './answered-route.ts'
 import type { AnsweredRoute } from './answered-route.ts'
 import {
@@ -117,7 +118,7 @@ const modelPolicy: z<ModelCompactPolicyConfig> = z.object({
  * @param agent - idle agent whose log receives the commit.
  */
 async function commitStagedRevert(ctx: Context, agent: Agent): Promise<void> {
-  const staged = foldRevert(agent.session.snapshotEvents()).staged
+  const staged = agent.session.stagedRevert()
   if (staged === null) return
   const revert = ctx.get('sessionRevert')
   if (revert !== undefined) {
@@ -126,6 +127,7 @@ async function commitStagedRevert(ctx: Context, agent: Agent): Promise<void> {
   }
   agent.session.append('session/revert/committed', { atSeq: staged.atSeq })
 }
+
 /**
  * Dependency-light compaction backend using `ctx.tokenMeter` for pressure,
  * retention, cited source events, and summary-convergence pricing.
@@ -340,10 +342,11 @@ export class BasicCompactionEngine extends CompactionEngine {
         const measurement = this.ctx.tokenMeter.measure(agent.session, header)
         const range = selectCompactableRange(agent.session, measurement, 0)
         if (range === null) return null
-        const mode = await this.automaticMode(agent, signal)
-        if (mode === 'snapcompact' && await this.frameCap(agent, range.start, range.end, signal) < 1) return null
-        return mode === 'snapcompact'
-          ? this.replaceRange(range.start, range.end, agent, signal, mode)
+        // Snapcompact falls back to a summary when not even one frame fits the window.
+        const archive = await this.automaticMode(agent, signal) === 'snapcompact'
+          && await this.frameCap(agent, range.start, range.end, signal) >= 1
+        return archive
+          ? this.replaceRange(range.start, range.end, agent, signal, 'snapcompact')
           : this.compactRegion(range.start, range.end, agent, signal)
       }
       /* v8 ignore next -- closed-union exhaustiveness guard */
@@ -364,7 +367,6 @@ export class BasicCompactionEngine extends CompactionEngine {
     const meter = this.ctx.tokenMeter
     let measurement = meter.measure(agent.session, header)
     const prune = this.ctx.get('toolResultPruner')
-
     const info = await this.ctx.llm.resolveModelInfo(target.provider, target.model, signal)
     assertNoActiveCompaction(agent.session, 'automatic pressure compaction')
     const targetKey = `${target.provider}/${target.model}`
@@ -403,9 +405,10 @@ export class BasicCompactionEngine extends CompactionEngine {
           + `(${measurement.totalTokens} estimated tokens >= threshold ${spec.thresholdTokens})`,
         )
       }
-      if (mode === 'snapcompact' && await this.frameCapFrom(agent, range.start, range.end, info, header) < 1) return result
-      result = mode === 'snapcompact'
-        ? await this.replaceRange(range.start, range.end, agent, signal, mode)
+      // Snapcompact falls back to a summary when not even one frame fits the window.
+      const archive = mode === 'snapcompact' && await this.frameCapFrom(agent, range.start, range.end, info, header) >= 1
+      result = archive
+        ? await this.replaceRange(range.start, range.end, agent, signal, 'snapcompact')
         : await this.compactRegion(range.start, range.end, agent, signal)
       measurement = meter.measure(agent.session, header)
       if (measurement.totalTokens < spec.thresholdTokens) return result

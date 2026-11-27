@@ -590,7 +590,6 @@ function makeHarness(
     chatScroll,
     forkAt,
     revertAt: () => {},
-    clearRevert: () => {},
     // Absent-service default; mention tests override with a real resolver.
     fileMentions: () => undefined,
     t,

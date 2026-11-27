@@ -361,9 +361,8 @@ export interface ChatViewInjected {
     read: () => ChatScrollPosition | null
   }
   forkAt: (seq: number) => void
+  /** Undo from this user message: stage the revert there and place its prompt in the composer. */
   revertAt: (seq: number) => void
-  /** Drop the staged revert boundary. */
-  clearRevert: () => void
 }
 
 /** Session-owned node sources shared with the view, plus the flow's connection state. */

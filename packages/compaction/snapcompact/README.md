@@ -1,6 +1,6 @@
 ---
 description: "Turn a discarded conversation span into PNG frames a vision model can read, without calling a summary model."
-kind: "package-library"
+kind: "package-reference"
 ---
 
 # @lulu-ling/dsh-snapcompact
@@ -82,7 +82,7 @@ None. The archive is local and does not call a model.
 <a id="known-limitations-and-deferred-work"></a>
 
 - There is no user-facing shape picker. Resolution stays automatic.
-- A model that has not declared image input cannot use the archive. Automatic compaction falls back to a summary; a manual snapcompact call fails.
+- A model that has not declared image input cannot use the archive, and neither can a window that fits no frame beside the retained history. Automatic compaction falls back to a summary in both cases; a manual snapcompact call fails.
 - The TypeScript rasterizer matches the frame geometry used in production shapes. It does not ship a native addon.
 
 <a id="dev-note"></a>

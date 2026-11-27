@@ -1,4 +1,16 @@
 import type { SessionRevertView } from '@lulu-ling/dsh-session-revert/client'
+import type { ChatNode } from '../contract/chat-nodes.ts'
+import type { ChatNodeStore } from '../contract/snapshot.ts'
+
+/**
+ * Turn number of a node placed in a turn or one of its steps.
+ * @param node - chat node.
+ * @returns the turn, or undefined outside a turn.
+ */
+export function nodeTurn(node: Pick<ChatNode, 'location'>): number | undefined {
+  const location = node.location
+  return location.kind === 'turn' || location.kind === 'step' ? location.turn.turn : undefined
+}
 
 /**
  * Whether a chat anchor is inside the staged boundary or a frozen range.
@@ -21,6 +33,24 @@ export const REVERT_CHROME_KINDS: Record<string, true> = {
 }
 
 const EMPTY_TURNS: ReadonlySet<number> = new Set()
+
+/**
+ * {@link collectRetractedTurns} over the loaded chat, in node order.
+ * @param order - chat node keys in order.
+ * @param nodes - chat node store.
+ * @param revert - current revert view.
+ * @returns turn numbers with content, none of it still visible.
+ */
+export function retractedChatTurns(
+  order: readonly string[],
+  nodes: Pick<ChatNodeStore, 'get'>,
+  revert: SessionRevertView | undefined,
+): ReadonlySet<number> {
+  return collectRetractedTurns(order.flatMap((key) => {
+    const node = nodes.get(key)
+    return node === undefined ? [] : [{ kind: node.kind, anchorSeq: node.anchorSeq, turn: nodeTurn(node) }]
+  }), revert)
+}
 
 /**
  * Turns whose content nodes are all inside the revert, so their chrome should

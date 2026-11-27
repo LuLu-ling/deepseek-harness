@@ -7,7 +7,7 @@ kind: "package-reference"
 
 [English](README.md) | 中文
 
-## 摘要
+## 概述
 
 在 Web 图形界面里不带参数地使用 `/compact`，可为这一次调用选择 soft compact 或 snapcompact。所选模型未声明图片输入时不列出 snapcompact。设置 → 通用设置 → 上下文压缩在选中时即保存自动方式。默认显示 soft compact。
 

@@ -10,7 +10,7 @@ The setup tutorial takes a new contributor from prerequisites to a checked check
 
 - Node.js 24.22.3 or a newer 24.x release, or Node.js 26.13.1 or newer. CI covers 24.22.3, the latest 24, and 26; see the [Node engine floor Agent Note](../.agents/notes/implemented/process/2026-10-15-node-24-runtime-floor.md).
 - Node.js TypeScript type stripping enabled. The repository build scripts load `tsdown.config.ts` with tsdown's native config loader, so they fail when `--no-experimental-strip-types` is in `NODE_OPTIONS` or the Node.js build lacks TypeScript support; `pnpm run build` checks this first and names the cause.
-- Corepack-enabled pnpm. The repo pins `pnpm@12.14.0` in `package.json`; run `corepack enable` if `pnpm --version` does not resolve through Corepack.
+- Corepack-enabled pnpm. The repo pins `pnpm@12.23.0` in `package.json`; run `corepack enable` if `pnpm --version` does not resolve through Corepack.
 - Git 2.26 or newer; hook setup enables Git's worktree-specific configuration extension.
 - Optional: a DeepSeek API key for the Web, headless, and ACP automation demos and real-API e2e tests.
 

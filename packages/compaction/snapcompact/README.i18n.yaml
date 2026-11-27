@@ -3,17 +3,17 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/compaction/snapcompact/README.md
 /:
-  en: f2b21414138670fd
-  zh: 0ecdc4f72b233cb6
+  en: c6dd79c22c29c784
+  zh: f0c1db81e2b0f70a
 /lulu-ling-dsh-snapcompact:
   en: 524268094e158490
   zh: afa57e8536ecf4ed
 /lulu-ling-dsh-snapcompact/summary:
   en: 48ea0184ebfca636
-  zh: e0da90984304d12e
+  zh: 3c1016135dfd8ab6
 /lulu-ling-dsh-snapcompact/table-of-contents:
   en: d152484eb41ac6b4
-  zh: a8de62241d29e58f
+  zh: 1caebc9485c1280c
 /lulu-ling-dsh-snapcompact/use-this-package:
   en: 1833ab90d1cf06ca
   zh: f2908dc96d400a98
@@ -30,8 +30,8 @@
   en: e5a9562f2d7a99aa
   zh: 5a382e0909c9f411
 /lulu-ling-dsh-snapcompact/known-limitations-and-deferred-work:
-  en: b432ccd685145c78
-  zh: 99656e1c3b562e7b
+  en: 8afabd483e8cdee7
+  zh: 469eaf918a9e82bc
 /lulu-ling-dsh-snapcompact/known-limitations-and-deferred-work/dev-note:
   en: e67f633dc6fe7773
-  zh: fd71ba5e495ef0ef
+  zh: 8ec3e73528ddb1a6

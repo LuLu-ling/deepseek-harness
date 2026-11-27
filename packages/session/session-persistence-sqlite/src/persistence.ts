@@ -202,10 +202,9 @@ export class SqliteSessionPersistence extends SessionPersistence {
     return [...entries.filter(entry => !known.has(entry.header.id)), ...segmented]
   }
 
-
   /**
    * Delete one session from SQLite and any leftover JSONL directory.
-   * Shared fork segments stay in the database.
+   * Frames a remaining fork still reads stay in the database; the rest are deleted.
    * @param id - stored session to delete.
    * @throws {SessionPersistenceNotFoundError} when the id is unknown.
    * @throws {SessionAlreadyOwnedError} when a write handle still owns the session.

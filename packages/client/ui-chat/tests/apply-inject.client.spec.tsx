@@ -58,6 +58,7 @@ function sessionFakeFor() {
     })),
     prompt: vi.fn<ISession['prompt']>(() => Promise.resolve({ ok: true, value: { accepted: true } })),
     cancel: vi.fn<ISession['cancel']>(() => Promise.resolve({ ok: true, value: { accepted: true } })),
+    revertStage: vi.fn<ISession['revertStage']>(atSeq => Promise.resolve({ ok: true, value: { atSeq, changed: true } })),
   } satisfies SessionBehaviorOverrides
 }
 
@@ -265,6 +266,14 @@ describe('Chat inject API', () => {
     } finally {
       await b.runtime.dispose()
     }
+  })
+
+  it('undoes from a message through the Session Controller', async () => {
+    const b = await bench()
+    const { injected } = b.chatViewApi(b.rootReference)
+    injected.revertAt(5)
+    await vi.waitFor(() => { expect(b.session.revertStage).toHaveBeenCalledExactlyOnceWith(5) })
+    await b.runtime.dispose()
   })
 
   it('loads older history and forks through the Session Controller', async () => {

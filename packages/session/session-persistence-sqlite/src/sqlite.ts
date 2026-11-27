@@ -68,6 +68,15 @@ const frameRow = z.object({ start_seq: z.number().int().nonnegative(), end_seq: 
 const TRACE_METADATA_SQL = `SELECT t.trace_uuid, header, tail_segment_uuid, inherited_count, base_seq,
   base_seq + COALESCE((SELECT end_seq FROM frames WHERE segment_uuid = s.segment_uuid ORDER BY start_seq DESC LIMIT 1), 0) AS event_count
   FROM traces t LEFT JOIN segments s ON s.segment_uuid = t.tail_segment_uuid`
+/** The one trigger session delete lifts and restores; schema creation uses the same text. */
+const FRAMES_NO_DELETE_TRIGGER = "CREATE TRIGGER frames_no_delete BEFORE DELETE ON frames BEGIN SELECT RAISE(ABORT, 'frames are append-only'); END;"
+/** A deleted tail and its ancestors that no remaining trace covers. Binds the tail twice. */
+const UNREAD_CHAIN_SEGMENTS_SQL = `SELECT chain.segment_uuid AS segment FROM (
+    SELECT ? AS segment_uuid UNION SELECT ancestor_uuid FROM segment_ancestors WHERE segment_uuid = ?
+  ) AS chain
+  WHERE NOT EXISTS (SELECT 1 FROM traces t WHERE t.tail_segment_uuid = chain.segment_uuid)
+    AND NOT EXISTS (SELECT 1 FROM traces t JOIN segment_ancestors a ON a.segment_uuid = t.tail_segment_uuid
+      WHERE a.ancestor_uuid = chain.segment_uuid)`
 const segmentFields = { segment_uuid: z.string().transform(segmentId), event_count: z.number().int().nonnegative() }
 const segmentRow = z.union([
   z.object({ ...segmentFields, parent_segment_uuid: z.null(), parent_end_seq: z.null(), base_seq: z.literal(0) }),
@@ -303,7 +312,7 @@ export class SqliteStore {
       codec INTEGER NOT NULL CHECK(codec IN (0, 1)), payload BLOB NOT NULL, PRIMARY KEY(segment_uuid, start_seq)
     ) STRICT;
     CREATE TRIGGER frames_no_update BEFORE UPDATE ON frames BEGIN SELECT RAISE(ABORT, 'frames are append-only'); END;
-    CREATE TRIGGER frames_no_delete BEFORE DELETE ON frames BEGIN SELECT RAISE(ABORT, 'frames are append-only'); END;
+    ${FRAMES_NO_DELETE_TRIGGER}
     CREATE TRIGGER segments_no_reparent BEFORE UPDATE OF parent_segment_uuid, parent_end_seq, base_seq ON segments
       BEGIN SELECT RAISE(ABORT, 'segment ancestry is immutable'); END;
     PRAGMA application_id = ${APPLICATION_ID}; PRAGMA user_version = ${SCHEMA_VERSION};`)
@@ -941,8 +950,10 @@ export class SqliteStore {
   }
 
   /**
-   * Remove one trace row. Shared ancestor segments stay; frames are append-only
-   * and may be referenced by a fork.
+   * Remove one trace row and the frames of every segment no remaining trace
+   * reads. A segment a fork still covers, as its tail or as an ancestor, keeps
+   * all of its frames. Segment rows and ancestry stay; they carry no content.
+   * The append-only trigger is lifted only inside this transaction.
    * @param id - stored trace to remove.
    * @returns whether a trace row was deleted.
    */
@@ -951,14 +962,22 @@ export class SqliteStore {
     if (!await this.exists()) return false
     const db = await this.database()
     const removed = this.transaction(db, () => {
-      if (this.row(db, id) === undefined) return false
+      const trace = z.object({ tail: z.string() }).optional()
+        .parse(this.statement(db, 'SELECT tail_segment_uuid AS tail FROM traces WHERE trace_uuid = ?').get(id))
+      if (trace === undefined) return false
       this.statement(db, 'DELETE FROM traces WHERE trace_uuid = ?').run(id)
+      const unread = z.array(z.object({ segment: z.string() }))
+        .parse(this.statement(db, UNREAD_CHAIN_SEGMENTS_SQL).all(trace.tail, trace.tail))
+      if (unread.length > 0) {
+        db.exec('DROP TRIGGER frames_no_delete')
+        for (const { segment } of unread) this.statement(db, 'DELETE FROM frames WHERE segment_uuid = ?').run(segment)
+        db.exec(FRAMES_NO_DELETE_TRIGGER)
+      }
       return true
     })
     this.chains.delete(id)
     return removed
   }
-
 
   /**
    * Open or create the configured database and validate its schema.

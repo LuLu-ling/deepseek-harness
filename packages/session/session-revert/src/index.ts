@@ -1,8 +1,9 @@
 /**
  * Log-backed session revert. Stage hides a user message and everything after
- * it. Clear restores that stage. Commit freezes the stage when a human prompt
- * is about to be logged. The session log stays intact; `Session.deriveMessages`
- * omits the hidden seqs.
+ * it. Clear restores that stage. Commit freezes the stage when a step is about
+ * to log new input, human or not, because that input would land inside the
+ * hidden range. The session log stays intact; `Session.deriveMessages` omits
+ * the hidden seqs.
  * @module @lulu-ling/dsh-session-revert
  */
 
@@ -13,7 +14,7 @@ import type {} from '@deepseek-ai/dsh-session-projection'
 import type { ProjectionDefinition, ProjectionHandle } from '@deepseek-ai/dsh-session-projection'
 import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import { z } from 'zod'
-import { applyRevertProjection, EMPTY_REVERT_STATE, humanPromptStarts, revertView } from './fold.ts'
+import { applyRevertProjection, EMPTY_REVERT_STATE, revertView, stepAdmitsInput } from './fold.ts'
 import type {
   SessionRevertClearResult,
   SessionRevertCommitResult,
@@ -28,8 +29,8 @@ export interface SessionRevertFiles {
   stage(agent: Agent, atSeq: SessionSeq, prev: { atSeq: number } | null): Promise<void>
   /** Put the worktree back to the snapshot taken at the first stage. */
   clear(agent: Agent): Promise<void>
-  /** Drop the saved worktree snapshot without restoring it. */
-  commit(agent: Agent): void
+  /** Drop the saved worktree snapshot without restoring it. The commit marker waits for it. */
+  commit(agent: Agent): void | Promise<void>
 }
 
 export type {
@@ -41,7 +42,7 @@ export type {
   SessionRevertState,
   SessionRevertView,
 } from './types.ts'
-export { applyRevertProjection, humanPromptStarts, revertView } from './fold.ts'
+export { applyRevertProjection, humanPromptStarts, revertView, stepAdmitsInput } from './fold.ts'
 
 const pointSchema = z.object({ atSeq: z.number() }).strict()
 const rangeSchema = z.object({ atSeq: z.number(), untilSeq: z.number() }).strict()
@@ -77,7 +78,7 @@ declare module '@deepseek-ai/cordis' {
 export class SessionRevertService extends TypertRemoteService {
   static inject = ['agents', 'sessionProjections']
 
-  private files?: SessionRevertFiles
+  private files: SessionRevertFiles | undefined
   /** One file change and its log append at a time, per session. */
   private readonly tails = new Map<SessionId, Promise<void>>()
   private revertHandle: ProjectionHandle<SessionRevertState> | undefined
@@ -94,7 +95,7 @@ export class SessionRevertService extends TypertRemoteService {
       if (!this.released) this.revertHandle = handle
     })
     ctx.on('agent/pre-step', async (payload, next) => {
-      if (humanPromptStarts(payload.messages)) await this.commit(payload.agent)
+      if (stepAdmitsInput(payload.messages)) await this.commit(payload.agent)
       return next()
     })
   }
@@ -102,9 +103,13 @@ export class SessionRevertService extends TypertRemoteService {
   /**
    * Attach worktree restore. The snapshot plugin calls this once it is mounted.
    * @param files - capture and restore callbacks.
+   * @returns a disposer that detaches `files` unless a later binding replaced them.
    */
-  bindFiles(files: SessionRevertFiles): void {
+  bindFiles(files: SessionRevertFiles): () => void {
     this.files = files
+    return () => {
+      if (this.files === files) this.files = undefined
+    }
   }
 
   /**
@@ -171,7 +176,7 @@ export class SessionRevertService extends TypertRemoteService {
   /**
    * Freeze the staged boundary. No-op when nothing is staged.
    * Waits until an in-flight stage or clear for this session has appended.
-   * Called before a human prompt is logged, and by redo's full restore path only through clear.
+   * Called before a step logs new input, and before manual compaction.
    * @param agent - live agent.
    * @returns whether a stage was frozen.
    */
@@ -181,7 +186,7 @@ export class SessionRevertService extends TypertRemoteService {
       this.assertLive(agent)
       const staged = this.state(agent.session).staged
       if (staged === null) return { committed: false }
-      this.files?.commit(agent)
+      await this.files?.commit(agent)
       agent.session.append('session/revert/committed', { atSeq: SessionSeq(staged.atSeq) })
       return { committed: true }
     })

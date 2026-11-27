@@ -23,7 +23,7 @@ import { assertMessageEventShape, checkSessionLog, needsInheritedSeedMarker } fr
 import type { SessionSeedMode } from './validation.ts'
 import type { ToolHistory } from '@deepseek-ai/dsh-llm'
 import { applyRevertEvent, assertRevertEventData, emptyRevertFold, revertExcludes } from './revert.ts'
-import type { RevertFoldState } from './revert.ts'
+import type { RevertFoldState, RevertStage } from './revert.ts'
 
 import { buildForkSeed } from './fork.ts'
 import { SessionForkError } from './fork-error.ts'
@@ -841,6 +841,14 @@ export class Session {
    */
   omittedByRevert(seq: SessionSeq): boolean {
     return revertExcludes(this.revertState, seq)
+  }
+
+  /**
+   * The open staged revert boundary, read from the fold kept with the log.
+   * @returns the stage, or null when nothing is staged.
+   */
+  stagedRevert(): RevertStage | null {
+    return this.revertState.staged
   }
 
   /**

@@ -108,6 +108,7 @@ describe('plugin configuration', () => {
     const provider = new SqliteSessionPersistence(ctx, ctx, { root }, {
       hasStoredJsonl: async () => false, list: async () => [], stat: async () => undefined,
       prepare: async () => { throw new Error('no legacy history') },
+      delete: async () => { throw new Error('no legacy history') },
     })
     const writer = await provider.create(header)
     await writer.append(events(65)); await writer.close()

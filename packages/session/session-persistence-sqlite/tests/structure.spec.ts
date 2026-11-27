@@ -199,3 +199,37 @@ it('reads long histories across frame decode groups and restores headers without
   expect(await logs.read(header, 0, events.length)).toEqual(events)
   await writer.close()
 })
+
+it('deletes only frames no remaining trace reads and keeps the append-only guard', async () => {
+  const { logs, path, id, header, event } = await fixture()
+  const source = await logs.create(header)
+  const prefix = [event(0), event(1), event(2)]
+  await source.append(prefix)
+  const childId = SessionId('delete-child')
+  await sharedHistory(logs, id, childId, prefix.slice(0, 2))
+  const child = await logs.open(childId, 'write')
+  await child.append([event(3, 'child-only')])
+  await child.close()
+  await source.append([event(3, 'source-only')])
+  await source.close()
+  const db = new DatabaseSync(path)
+  onTestFinished(() => { db.close() })
+  const frameText = () => db.prepare('SELECT payload FROM frames').all()
+    .map(row => Buffer.from(z.object({ payload: z.instanceof(Uint8Array) }).parse(row).payload).toString('latin1')).join('')
+  const frameCount = () => z.object({ n: z.number() }).parse(db.prepare('SELECT count(*) AS n FROM frames').get()).n
+
+  await expect(logs.deleteTrace(id)).resolves.toBe(true)
+  // The parent's segment is an ancestor of the fork, so its frames stay readable.
+  await using reread = await logs.open(childId, 'read')
+  expect((await reread.read()).events.map(item => item.seq)).toEqual([0, 1, 2, 3])
+  expect(frameCount()).toBeGreaterThan(0)
+
+  await reread.close()
+  await expect(logs.deleteTrace(childId)).resolves.toBe(true)
+  expect(frameCount()).toBe(0)
+  expect(frameText()).not.toContain('child-only')
+  await expect(logs.deleteTrace(childId)).resolves.toBe(false)
+  expect(() => { db.exec('DELETE FROM frames') }).not.toThrow()
+  db.exec("INSERT INTO frames SELECT segment_uuid, 0, 1, 0, x'00' FROM segments LIMIT 1")
+  expect(() => { db.exec('DELETE FROM frames') }).toThrow(/append-only/)
+})

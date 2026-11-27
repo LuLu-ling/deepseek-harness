@@ -334,7 +334,6 @@ export function apply(ctx: Context): void {
           revertAt: (seq) => {
             stageUndo(ctx, session, SessionSeq(seq))
           },
-          clearRevert: () => { void session.revertClear() },
         }
       },
     }, ChatView)

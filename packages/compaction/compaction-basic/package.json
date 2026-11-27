@@ -40,6 +40,7 @@
     "@deepseek-ai/dsh-llm": "workspace:*",
     "@deepseek-ai/dsh-session": "workspace:*",
     "@lulu-ling/dsh-session-revert": "workspace:*",
+    "@lulu-ling/dsh-compaction-preference": "workspace:*",
     "@deepseek-ai/dsh-session-projection": "workspace:*",
     "@deepseek-ai/dsh-token-meter": "workspace:*"
   },
@@ -48,6 +49,9 @@
       "optional": true
     },
     "@lulu-ling/dsh-session-revert": {
+      "optional": true
+    },
+    "@lulu-ling/dsh-compaction-preference": {
       "optional": true
     }
   },

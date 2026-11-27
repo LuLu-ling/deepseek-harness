@@ -473,6 +473,23 @@ describe('compactNow transaction and failure classification', () => {
     expect(session.surface.nodes[0]).toBe(checkpoint!.seq)
   })
 
+  it('commits a staged undo through the revert service when it is mounted', async () => {
+    const { ctx, compact } = detachedService()
+    const session = closedConversation(2)
+    const users = session.snapshotEvents().filter(event => event.type === 'user/message')
+    session.append('session/revert/staged', { atSeq: users[1]!.seq })
+    const commit = vi.fn(async (agent: Agent) => {
+      agent.session.append('session/revert/committed', { atSeq: users[1]!.seq })
+      return { committed: true }
+    })
+    ctx.reflect.provide('sessionRevert', { commit })
+    const agent = fakeAgent(session, () => () => undefined)
+
+    await expect(compact.compactNow(agent, SIGNAL)).resolves.not.toBeNull()
+    expect(commit).toHaveBeenCalledExactlyOnceWith(agent)
+    expect(session.snapshotEvents().filter(event => event.type === 'session/revert/committed')).toHaveLength(1)
+  })
+
   it('reports a live unmatched bracket as busy without summarizing', async () => {
     const { compact } = detachedService()
     const session = closedConversation(2)
